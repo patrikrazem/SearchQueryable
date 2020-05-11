@@ -133,6 +133,19 @@ namespace SearchQueryable.Tests
             Assert.Single(results, _books.Single(b => b.Title.Equals("Othello")));
         }
 
+        public void WorksOnMultiplePredicateReturnTypes()
+        {
+            var results = _books.Search("Othello", b => b.Title, b => b.YearPublished);
+            Assert.Single(results);
+        }
+
+        // [Fact]
+        // public void WorksOnComplexTypedChildrenWithPredicate()
+        // {
+        //     var results = _books.Search("classic", b => b.Publisher.Address);
+        //     Assert.Single(results, _books.Single(b => b.Title.Equals("Othello")));
+        // }
+
         // TODO: search for int23, DateTIme, float, decimal?
     }
     public class Neki

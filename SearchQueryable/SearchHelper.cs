@@ -41,12 +41,12 @@ namespace SearchQueryable
         /// <param name="searchQuery">The search query by which the entries should be filtered</param>
         /// <param name="fields">The fields that should be queried with the specified search string</param>
         /// <returns>A filteres collection of entries</returns>
-        public static IQueryable<T> Search<T, U>(this IQueryable<T> data, string searchQuery, params Expression<Func<T, U>>[] fields)
+        public static IQueryable<T> Search<T>(this IQueryable<T> data, string searchQuery, params Expression<Func<T, object>>[] fields)
         {
             var matches = data;
             foreach (var part in searchQuery.ToLowerInvariant().Split()) {
                 if (!string.IsNullOrWhiteSpace(part)) {
-                    matches = matches.Where(SearchHelper.ConstructSearchPredicate<T, U>(part.Trim(), fields));
+                    matches = matches.Where(SearchHelper.ConstructSearchPredicate<T>(part.Trim(), fields));
                 }
             }
 
@@ -66,7 +66,7 @@ namespace SearchQueryable
         ///
         /// `x => x.Name.ToLower().Contains(query) || x.Address.ToLower().Contains(query)`
         ///
-        private static Expression<Func<TObject, bool>> ConstructSearchPredicate<TObject, TMember>(string searchQuery, params Expression<Func<TObject, TMember>>[] fields)
+        private static Expression<Func<TObject, bool>> ConstructSearchPredicate<TObject>(string searchQuery, params Expression<Func<TObject, object>>[] fields)
         {
             // Create constant with query
             var constant = Expression.Constant(searchQuery);
@@ -83,10 +83,10 @@ namespace SearchQueryable
                     .VisitAndConvert(f.Body, nameof(ConstructSearchPredicate));
 
                 // Construct an expression that will check that the value is not null
-                var nullCheckExpression = GetNullCheckExpression<TMember>(propertyExpression);
+                var nullCheckExpression = GetNullCheckExpression(propertyExpression, propertyExpression.Type);
 
                 // Construct an expression that will query the value
-                var queryExpression = GetQueryExpression<TMember>(propertyExpression, constant);
+                var queryExpression = GetQueryExpression(propertyExpression, constant, propertyExpression.Type);
 
                 // Combine the null checking expression, if needed (reference types)
                 var partialExpression = queryExpression;
