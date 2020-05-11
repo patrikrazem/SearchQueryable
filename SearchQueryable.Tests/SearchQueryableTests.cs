@@ -13,11 +13,11 @@ namespace SearchQueryable.Tests
         {
             _books = new List<Book>()
             {
-                new Book("Romeo && Juliet", "William Shakespeare", 1597, "ISBN 123456"),
-                new Book("Othello", "William Shakespeare", 1597, "ISBN 123457"),
-                new Book("The Two Noble Kinsmen", "William Shakespeare", 1635, "ISBN 123458"),
-                new Book("A New Kind of Science", "Stephen Wolfram", 2002, "ISBN 123459"),
-                new Book("The Will To Live", "Invented Person", 1523, "ISBN 1234510"),
+                new Book("Romeo && Juliet", "William Shakespeare", 1597, "ISBN 123456", 99.99m),
+                new Book("Othello", "William Shakespeare", 1597, "ISBN 123457", 123.45m),
+                new Book("The Two Noble Kinsmen", "William Shakespeare", 1635, "ISBN 123458", 111.11m),
+                new Book("A New Kind of Science", "Stephen Wolfram", 2002, "ISBN 123459", 222.22m),
+                new Book("The Will To Live", "Invented Person", 1523, "ISBN 1234510", 0.00m),
             }.AsQueryable();
 
         }
@@ -106,10 +106,24 @@ namespace SearchQueryable.Tests
         }
 
         [Fact]
-        public void WorkOnIntegerFieldsWithPredicate()
+        public void WorksOnIntegerFieldsWithPredicate()
         {
             var results = _books.Search("1523", b => b.YearPublished);
             Assert.Single(results, _books.Last());
+        }
+
+        [Fact]
+        public void WorksOnDecimalFields()
+        {
+            var results = _books.Search("99.99");
+            Assert.Single(results, _books.First());
+        }
+        
+        [Fact]
+        public void WorksOnDecimalFieldsWithPredicate()
+        {
+            var results = _books.Search("99.99", b => b.Price);
+            Assert.Single(results, _books.First());
         }
 
         // TODO: search for int23, DateTIme, float, decimal?

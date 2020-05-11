@@ -8,10 +8,24 @@ namespace SearchQueryable
 {
     public static class SearchHelper
     {
+        /// <summary>
+        /// Types of properties/fields that can be searched
+        /// </summary>
         private static Type[] AvailableTypes = new Type[] {
             typeof(string),
-            typeof(int)
+            typeof(int),
+            typeof(decimal)
         };
+
+        /// <summary>
+        /// A constant definition of the ToLowerInvariant method to use in expressions
+        /// </summary>
+        private static readonly MethodInfo LowerMethod = typeof(string).GetMethod("ToLowerInvariant", new Type[0]);
+
+        /// <summary>
+        /// A constant definition of the Contants method to use in expressions
+        /// </summary>
+        private static readonly MethodInfo ContainsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
 
         /// <summary>
         /// Extensions method for filtering entries by all their string fields
@@ -61,49 +75,44 @@ namespace SearchQueryable
         ///
         /// `x => x.Name.ToLower().Contains(query) || x.Address.ToLower().Contains(query)`
         ///
-        private static Expression<Func<T, bool>> ConstructSearchPredicate<T, U>(string searchQuery, params Expression<Func<T, U>>[] fields)
+        private static Expression<Func<TObject, bool>> ConstructSearchPredicate<TObject, TMember>(string searchQuery, params Expression<Func<TObject, TMember>>[] fields)
         {
             // Create constant with query
             var constant = Expression.Constant(searchQuery);
 
             // Input parameter (e.g. "c => ")
-            var parameter = Expression.Parameter(typeof(T), "c");
-
-            // Find methods that will be run on each property
-            var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
-            var lowerMethod = typeof(string).GetMethod("ToLowerInvariant", new Type[0]);
+            var parameter = Expression.Parameter(typeof(TObject), "c");
 
             // Construct expression
-            Expression finalBody = null;
+            Expression finalExpression = null;
             foreach (var f in fields) {
                 // Visit the provided expression and replace the input parameter with the one defined above ("c")
                 // e.g. (from "x.Something" we get "c.Something")
                 var propertyExpression = new ExpressionParameterVisitor(f.Parameters.First(), parameter)
                     .VisitAndConvert(f.Body, nameof(ConstructSearchPredicate));
 
-                // Check that it's not null
-                var nullValue = typeof(U).IsValueType ? Activator.CreateInstance(typeof(U)) : null;
-                var nullCheckExpression = Expression.NotEqual(propertyExpression, Expression.Constant(nullValue));
+                // Construct an expression that will check that the value is not null
+                var nullCheckExpression = GetNullCheckExpression<TMember>(propertyExpression);
 
-                var toStringMethod = f.ReturnType.GetMethod("ToString", new Type[0]);
-                var transformedProperty = Expression.Call(propertyExpression, toStringMethod);
+                // Construct an expression that will query the value
+                var queryExpression = GetQueryExpression<TMember>(propertyExpression, constant);
 
-                // Run lowercase method on property (e.g. "c.<property>.ToString().ToLowerInvariant()")
-                transformedProperty = Expression.Call(transformedProperty, lowerMethod);
-
-                // Run contains on property with provided query (e.g. "c.<property>.ToLowerInvariant().Contains(<query>)")
-                transformedProperty = Expression.Call(transformedProperty, containsMethod, constant);
+                // Combine the null checking expression, if needed (reference types)
+                var partialExpression = queryExpression;
+                if (nullCheckExpression != null) {
+                    partialExpression = Expression.AndAlso(nullCheckExpression, queryExpression);
+                }
 
                 // Handle case when no OR operation can be constructed
-                if (finalBody == null) {
-                    finalBody = Expression.AndAlso(nullCheckExpression, transformedProperty);
+                if (finalExpression == null) {
+                    finalExpression = partialExpression;
                 } else {
-                    finalBody = Expression.Or(finalBody, Expression.AndAlso(nullCheckExpression, transformedProperty));
+                    finalExpression = Expression.Or(finalExpression, partialExpression);
                 }
             }
 
             // Return the constructed expression
-            return Expression.Lambda<Func<T, bool>>(finalBody, parameter);
+            return Expression.Lambda<Func<TObject, bool>>(finalExpression, parameter);
         }
 
         /// <summary>
@@ -127,10 +136,6 @@ namespace SearchQueryable
             // Input parameter (e.g. "c => ")
             var parameter = Expression.Parameter(typeof(T), "c");
 
-            // Find methods that will be run on each property
-            var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
-            var lowerMethod = typeof(string).GetMethod("ToLowerInvariant", new Type[0]);
-
             // Get all object properties
             var type = typeof(T);
             var flags = BindingFlags.Public | BindingFlags.Instance;
@@ -139,13 +144,12 @@ namespace SearchQueryable
                 .Concat(type.GetProperties(flags)).ToArray();
 
             // Construct expression
-            Expression finalBody = null;
+            Expression finalExpression = null;
             foreach (var p in propertiesOrFields) {
                 // Get type of p
                 var pType = p.GetUnderlyingType();
-                var toStringMethod = pType.GetMethod("ToString", new Type[0]);
 
-                if ((p.MemberType == MemberTypes.Property || p.MemberType == MemberTypes.Field) && AvailableTypes.Contains(p.GetUnderlyingType())) {
+                if ((p.MemberType == MemberTypes.Property || p.MemberType == MemberTypes.Field) && AvailableTypes.Contains(pType)) {
                     // Express a property (e.g. "c.<property>" )
                     Expression expressionProperty;
                     if (p.MemberType == MemberTypes.Field) {
@@ -155,32 +159,93 @@ namespace SearchQueryable
                     }
                     
                     // Check that property value is not null (or default) (e.g. "c.<property> != null")
-                    var nullValue = pType.IsValueType ? Activator.CreateInstance(pType) : null;
-                    var nullCheckExpression = Expression.NotEqual(expressionProperty, Expression.Constant(nullValue, pType));
+                    var nullCheckExpression = GetNullCheckExpression(expressionProperty, pType);
 
-                    // Run ToString method on property (e.g. "c.<property>.ToString()")
-                    var transformedProperty = Expression.Call(expressionProperty, toStringMethod);
+                    // Get query expression
+                    var queryExpression = GetQueryExpression(expressionProperty, constant, pType);
 
-                    // Run lowercase method on property (e.g. "c.<property>.ToString().ToLowerInvariant()")
-                    transformedProperty = Expression.Call(transformedProperty, lowerMethod);
-
-                    // Run contains on property with provided query (e.g. "c.<property>.ToString().ToLowerInvariant().Contains(<query>)")
-                    transformedProperty = Expression.Call(transformedProperty, containsMethod, constant);
+                    var partialExpression = queryExpression;
+                    if (nullCheckExpression != null) {
+                        partialExpression = Expression.AndAlso(nullCheckExpression, queryExpression);
+                    }
 
                     // Handle case when no OR operation can be constructed
-                    if (finalBody == null) {
-                        finalBody = Expression.AndAlso(nullCheckExpression, transformedProperty);
-                        // finalBody = transformedProperty;
+                    if (finalExpression == null) {
+                        finalExpression = partialExpression;
                     } else {
-                        finalBody = Expression.Or(finalBody, Expression.AndAlso(nullCheckExpression, transformedProperty));
-                        // finalBody = Expression.Or(finalBody, transformedProperty);
+                        finalExpression = Expression.Or(finalExpression, partialExpression);
                     }
                 }
             }
 
 
             // Return the constructed expression
-            return Expression.Lambda<Func<T, bool>>(finalBody, parameter);
+            return Expression.Lambda<Func<T, bool>>(finalExpression, parameter);
+        }
+
+        /// <summary>
+        /// Constructs an expression to check that the property is not null, if needed
+        /// </summary>
+        /// <param name="propertyExpression">The expression of the property</param>
+        /// The resulting expression will check that the property is not null (e.g. "c.<property> != null")
+        /// This is only required for reference types, since value types have non-null default values
+        private static Expression GetNullCheckExpression<TMember>(Expression propertyExpression)
+            => GetNullCheckExpression(propertyExpression, typeof(TMember));
+        
+
+        /// <summary>
+        /// Constructs an expression to check that the property is not null, if needed
+        /// </summary>
+        /// <param name="propertyExpression">The expression of the property</param>
+        /// <param name="propertyType">The type of the property</param>
+        /// The resulting expression will check that the property is not null (e.g. "c.<property> != null")
+        /// This is only required for reference types, since value types have non-null default values
+        private static Expression GetNullCheckExpression(Expression propertyExpression, Type propertyType)
+        {
+            // Value types have non-null defaults and can be safely operated on
+            if (propertyType.IsValueType) {
+                return null;
+            }
+
+            // Check that property value is not null (or default) (e.g. "c.<property> != null")
+            var nullCheckExpression = Expression.NotEqual(propertyExpression, Expression.Constant(null, propertyType));
+
+            return nullCheckExpression;
+        }
+
+        /// <summary>
+        /// Constructs an expression to query the property for the specified search term
+        /// </summary>
+        /// <param name="propertyExpression">The expression of the property being tested</param>
+        /// <param name="queryConstant">The expression representing the search term</param>
+        /// The resulting expression will test the property for inclusion of the query
+        /// c.<property>.ToString().ToLowerInvariant().Contains(<queryConstant>)
+        private static Expression GetQueryExpression<TMember>(Expression propertyExpression, Expression queryConstant)
+            =>  GetQueryExpression(propertyExpression, queryConstant, typeof(TMember));
+        
+        /// <summary>
+        /// Constructs an expression to query the property for the specified search term
+        /// </summary>
+        /// <param name="propertyExpression">The expression of the property being tested</param>
+        /// <param name="queryConstant">The expression representing the search term</param>
+        /// <param name="propertyType">The type of the property to be tested</param>
+        /// The resulting expression will test the property for inclusion of the query
+        /// c.<property>.ToString().ToLowerInvariant().Contains(<queryConstant>)
+        private static Expression GetQueryExpression(Expression propertyExpression, Expression queryConstant, Type propertyType)
+        {
+            // Find methods that will be run on each property
+            var toStringMethod = propertyType.GetMethod("ToString", new Type[0]);
+
+            // Run ToString method on property (e.g. "c.<property>.ToString()")
+            var transformedProperty = Expression.Call(propertyExpression, toStringMethod);
+
+            // Run lowercase method on property (e.g. "c.<property>.ToString().ToLowerInvariant()")
+            transformedProperty = Expression.Call(transformedProperty, LowerMethod);
+
+            // Run contains on property with provided query (e.g. "c.<property>.ToString().ToLowerInvariant().Contains(<query>)")
+            transformedProperty = Expression.Call(transformedProperty, ContainsMethod, queryConstant);
+
+            return transformedProperty;
         }
 
         private static Type GetUnderlyingType(this MemberInfo member)
