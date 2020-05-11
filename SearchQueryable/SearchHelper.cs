@@ -9,15 +9,6 @@ namespace SearchQueryable
     public static class SearchHelper
     {
         /// <summary>
-        /// Types of properties/fields that can be searched
-        /// </summary>
-        private static Type[] AvailableTypes = new Type[] {
-            typeof(string),
-            typeof(int),
-            typeof(decimal)
-        };
-
-        /// <summary>
         /// A constant definition of the ToLowerInvariant method to use in expressions
         /// </summary>
         private static readonly MethodInfo LowerMethod = typeof(string).GetMethod("ToLowerInvariant", new Type[0]);
@@ -149,7 +140,7 @@ namespace SearchQueryable
                 // Get type of p
                 var pType = p.GetUnderlyingType();
 
-                if ((p.MemberType == MemberTypes.Property || p.MemberType == MemberTypes.Field) && AvailableTypes.Contains(pType)) {
+                if ((p.MemberType == MemberTypes.Property || p.MemberType == MemberTypes.Field)) {
                     // Express a property (e.g. "c.<property>" )
                     Expression expressionProperty;
                     if (p.MemberType == MemberTypes.Field) {

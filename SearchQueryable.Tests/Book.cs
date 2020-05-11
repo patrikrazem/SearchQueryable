@@ -1,3 +1,5 @@
+using System;
+
 namespace SearchQueryable.Tests
 {
     public class Book
@@ -8,15 +10,18 @@ namespace SearchQueryable.Tests
 
         public string ISBN { get; set; }
 
-        public decimal Price { get; set; }
+        public float Price { get; set; }
 
-        public Book(string title, string author, int year, string isbn, decimal price)
+        public Publisher Publisher  { get; private set; }
+
+        public Book(string title, string author, int year, string isbn, float price, Publisher publisher = null)
         {
             Title = title;
             Author = author;
             YearPublished = year;
             ISBN = isbn;
             Price = price;
+            Publisher = publisher;
         }
 
         public override string ToString()

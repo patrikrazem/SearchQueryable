@@ -13,11 +13,11 @@ namespace SearchQueryable.Tests
         {
             _books = new List<Book>()
             {
-                new Book("Romeo && Juliet", "William Shakespeare", 1597, "ISBN 123456", 99.99m),
-                new Book("Othello", "William Shakespeare", 1597, "ISBN 123457", 123.45m),
-                new Book("The Two Noble Kinsmen", "William Shakespeare", 1635, "ISBN 123458", 111.11m),
-                new Book("A New Kind of Science", "Stephen Wolfram", 2002, "ISBN 123459", 222.22m),
-                new Book("The Will To Live", "Invented Person", 1523, "ISBN 1234510", 0.00m),
+                new Book("Romeo && Juliet", "William Shakespeare", 1597, "ISBN 123456", 99.99f, new Publisher("Pasadena", "First street")),
+                new Book("Othello", "William Shakespeare", 1597, "ISBN 123457", 123.45f, new Publisher("Penguin", "Classic street")),
+                new Book("The Two Noble Kinsmen", "William Shakespeare", 1635, "ISBN 123458", 111.11f, new Publisher("Pasadena", "First street")),
+                new Book("A New Kind of Science", "Stephen Wolfram", 2002, "ISBN 123459", 222.22f),
+                new Book("The Will To Live", "Invented Person", 1523, "ISBN 1234510", 0.00f),
             }.AsQueryable();
 
         }
@@ -126,30 +126,14 @@ namespace SearchQueryable.Tests
             Assert.Single(results, _books.First());
         }
 
+        [Fact]
+        public void WorksOnComplexTypedChildren()
+        {
+            var results = _books.Search("classic");
+            Assert.Single(results, _books.Single(b => b.Title.Equals("Othello")));
+        }
+
         // TODO: search for int23, DateTIme, float, decimal?
-
-        // [Fact]
-        // public void MatchesIntValues()
-        // {
-        //     var result = _books.Search("1523");
-        //     Assert.Single(result, _books.Single(b => b.YearPublished == 1523));
-        // }
-
-        // TODO: add tests for child objects (p => p.Author.FirstName)
-
-        // [Fact]
-        // public void Burek()
-        // {
-        //     // var s = "12345";
-        //     // _books.Where(b => b.ISBN.DefaultIfEmpty().ToString().ToLowerInvariant().Contains(s));
-        //     // string isbn = null;
-        //     // System.Console.WriteLine(isbn.ToLowerInvariant().Contains("123"));
-        //     var l = new List<Neki>() { new Neki()}.AsQueryable();
-        //     string s = "testek";
-        //     var result = l.Search(s);
-        //     System.Console.WriteLine(result);
-        //     System.Console.WriteLine(result.Count());
-        // }
     }
     public class Neki
     {
