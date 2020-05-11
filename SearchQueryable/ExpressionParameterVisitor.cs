@@ -19,11 +19,11 @@ namespace SearchQueryable
         /// <param name="to">The parameters with which to replace the original ones</param>
         public ExpressionParameterVisitor(ParameterExpression from, ParameterExpression to)
         {
-            if(from == null) {
+            if (from == null) {
                 throw new ArgumentNullException("From is required");
             }
 
-            if(to == null) {
+            if (to == null) {
                 throw new ArgumentNullException("to");
             }
 
@@ -32,11 +32,11 @@ namespace SearchQueryable
         }
         protected override Expression VisitParameter(ParameterExpression node)
         {
-                if (node == from) {
-                    return to;
-                }  else {
-                    return node;
-                }
+            if (node == from) {
+                return to;
+            } else {
+                return node;
+            }
         }
     }
 }
