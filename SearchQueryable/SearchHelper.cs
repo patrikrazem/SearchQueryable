@@ -77,8 +77,11 @@ namespace SearchQueryable
                 var propertyExpression = new ExpressionParameterVisitor(f.Parameters.First(), parameter)
                     .VisitAndConvert(f.Body, nameof(ConstructSearchPredicate));
 
+                // Coalesce value, if null, to default (e.g. "c.<property> ?? string.)
+                var transformedProperty = (Expression) Expression.Coalesce(propertyExpression, Expression.Constant(string.Empty));
+
                 // Run lowercase method on property (e.g. "c.<property>.ToLowerInvariant()")
-                var transformedProperty = Expression.Call(propertyExpression, lowerMethod);
+                transformedProperty = Expression.Call(transformedProperty, lowerMethod);
 
                 // Run contains on property with provided query (e.g. "c.<property>.ToLowerInvariant().Contains(<query>)")
                 transformedProperty = Expression.Call(transformedProperty, containsMethod, constant);
@@ -117,6 +120,7 @@ namespace SearchQueryable
             var parameter = Expression.Parameter(typeof(T), "c");
 
             // Find methods that will be run on each property
+            var toStringMethod = typeof(string).GetMethod("ToString", new Type[0]);
             var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
             var lowerMethod = typeof(string).GetMethod("ToLowerInvariant", new Type[0]);
 
@@ -139,10 +143,16 @@ namespace SearchQueryable
                         expressionProperty = Expression.Property(parameter, p.Name);
                     }
 
-                    // Run lowercase method on property (e.g. "c.<property>.ToLowerInvariant()")
-                    var transformedProperty = Expression.Call(expressionProperty, lowerMethod);
+                    // Coalesce value, if null, to default (e.g. "c.<property> ?? string.)
+                    var transformedProperty = (Expression) Expression.Coalesce(expressionProperty, Expression.Constant(string.Empty));
 
-                    // Run contains on property with provided query (e.g. "c.<property>.ToLowerInvariant().Contains(<query>)")
+                    // Run ToString method on property (e.g. "c.<property>.ToString()")
+                    transformedProperty = Expression.Call(transformedProperty, toStringMethod);
+
+                    // Run lowercase method on property (e.g. "c.<property>.ToString().ToLowerInvariant()")
+                    transformedProperty = Expression.Call(transformedProperty, lowerMethod);
+
+                    // Run contains on property with provided query (e.g. "c.<property>.ToString().ToLowerInvariant().Contains(<query>)")
                     transformedProperty = Expression.Call(transformedProperty, containsMethod, constant);
 
                     // Handle case when no OR operation can be constructed
