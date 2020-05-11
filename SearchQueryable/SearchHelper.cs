@@ -123,13 +123,13 @@ namespace SearchQueryable
             // Get all object properties
             var type = typeof(T);
             var flags = BindingFlags.Public | BindingFlags.Instance;
-            var properties = type
+            var propertiesOrFields = type
                 .GetFields(flags).Cast<MemberInfo>()
                 .Concat(type.GetProperties(flags)).ToArray();
 
             // Construct expression
             Expression finalBody = null;
-            foreach (var p in properties) {
+            foreach (var p in propertiesOrFields) {
                 if ((p.MemberType == MemberTypes.Property || p.MemberType == MemberTypes.Field) && p.GetUnderlyingType() == typeof(string)) {
                     // Express a property (e.g. "c.<property>" )
                     Expression expressionProperty;
