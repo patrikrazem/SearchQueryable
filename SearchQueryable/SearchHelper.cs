@@ -17,7 +17,7 @@ namespace SearchQueryable
         public static IQueryable<T> Search<T>(this IQueryable<T> data, string searchQuery)
         {
             var matches = data;
-            foreach (var part in searchQuery.Split()) {
+            foreach (var part in searchQuery.ToLowerInvariant().Split()) {
                 if (!string.IsNullOrWhiteSpace(part)) {
                     matches = matches.Where(SearchHelper.ConstructSearchPredicate<T>(part.Trim()));
                 }
@@ -35,7 +35,7 @@ namespace SearchQueryable
         public static IQueryable<T> Search<T>(this IQueryable<T> data, string searchQuery, params Expression<Func<T, string>>[] fields)
         {
             var matches = data;
-            foreach (var part in searchQuery.Split()) {
+            foreach (var part in searchQuery.ToLowerInvariant().Split()) {
                 if (!string.IsNullOrWhiteSpace(part)) {
                     matches = matches.Where(SearchHelper.ConstructSearchPredicate<T>(part.Trim(), fields));
                 }
@@ -48,7 +48,7 @@ namespace SearchQueryable
         /// Constructs an expression that is used to filter entries and execute a search for the specified query
         /// on all string type fields of an entity
         /// </summary>
-        /// <param name="query">The query to be searched for in all string fields</param>
+        /// <param name="searchQuery">The query to be searched for in all string fields</param>
         /// <returns>An expression that can be used in queries to the DB context</returns>
         ///
         /// Example:
@@ -57,10 +57,10 @@ namespace SearchQueryable
         ///
         /// `x => x.Name.ToLower().Contains(query) || x.Address.ToLower().Contains(query)`
         ///
-        public static Expression<Func<T, bool>> ConstructSearchPredicate<T>(string query, params Expression<Func<T, string>>[] fields)
+        private static Expression<Func<T, bool>> ConstructSearchPredicate<T>(string searchQuery, params Expression<Func<T, string>>[] fields)
         {
             // Create constant with query
-            var constant = Expression.Constant(query);
+            var constant = Expression.Constant(searchQuery);
 
             // Input parameter (e.g. "c => ")
             var parameter = Expression.Parameter(typeof(T), "c");
@@ -108,7 +108,7 @@ namespace SearchQueryable
         ///
         /// `x => x.Name.ToLower().Contains(query) || x.Address.ToLower().Contains(query)`
         ///
-        public static Expression<Func<T, bool>> ConstructSearchPredicate<T>(string query)
+        private static Expression<Func<T, bool>> ConstructSearchPredicate<T>(string query)
         {
             // Create constant with query
             var constant = Expression.Constant(query);
@@ -130,8 +130,6 @@ namespace SearchQueryable
             // Construct expression
             Expression finalBody = null;
             foreach (var p in properties) {
-                Console.WriteLine($"Checking {p.Name}");
-
                 if ((p.MemberType == MemberTypes.Property || p.MemberType == MemberTypes.Field) && p.GetUnderlyingType() == typeof(string)) {
                     // Express a property (e.g. "c.<property>" )
                     Expression expressionProperty;
@@ -160,7 +158,7 @@ namespace SearchQueryable
             return Expression.Lambda<Func<T, bool>>(finalBody, parameter);
         }
 
-        public static Type GetUnderlyingType(this MemberInfo member)
+        private static Type GetUnderlyingType(this MemberInfo member)
         {
             switch (member.MemberType) {
                 case MemberTypes.Event:
