@@ -13,7 +13,7 @@ namespace SearchQueryable.Tests
         {
             _books = new List<Book>()
             {
-                new Book("Romeo And Juliet", "William Shakespeare", 1597, "ISBN 123456"),
+                new Book("Romeo && Juliet", "William Shakespeare", 1597, "ISBN 123456"),
                 new Book("Othello", "William Shakespeare", 1597, "ISBN 123457"),
                 new Book("The Two Noble Kinsmen", "William Shakespeare", 1635, "ISBN 123458"),
                 new Book("A New Kind of Science", "Stephen Wolfram", 2002, "ISBN 123459"),
@@ -98,8 +98,48 @@ namespace SearchQueryable.Tests
             Assert.Single(results, _books.Last());
         }
 
+        [Fact]
+        public void WorksOnIntegerFields()
+        {
+            var results = _books.Search("1523");
+            Assert.Single(results, _books.Last());
+        }
+
+        [Fact]
+        public void WorkOnIntegerFieldsWithPredicate()
+        {
+            var results = _books.Search("1523", b => b.YearPublished);
+            Assert.Single(results, _books.Last());
+        }
+
         // TODO: search for int23, DateTIme, float, decimal?
 
+        // [Fact]
+        // public void MatchesIntValues()
+        // {
+        //     var result = _books.Search("1523");
+        //     Assert.Single(result, _books.Single(b => b.YearPublished == 1523));
+        // }
+
         // TODO: add tests for child objects (p => p.Author.FirstName)
+
+        // [Fact]
+        // public void Burek()
+        // {
+        //     // var s = "12345";
+        //     // _books.Where(b => b.ISBN.DefaultIfEmpty().ToString().ToLowerInvariant().Contains(s));
+        //     // string isbn = null;
+        //     // System.Console.WriteLine(isbn.ToLowerInvariant().Contains("123"));
+        //     var l = new List<Neki>() { new Neki()}.AsQueryable();
+        //     string s = "testek";
+        //     var result = l.Search(s);
+        //     System.Console.WriteLine(result);
+        //     System.Console.WriteLine(result.Count());
+        // }
+    }
+    public class Neki
+    {
+        public string Ime { get; set; }
+        public string Priimek { get; set; }
     }
 }

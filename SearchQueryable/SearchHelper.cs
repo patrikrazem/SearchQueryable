@@ -8,6 +8,10 @@ namespace SearchQueryable
 {
     public static class SearchHelper
     {
+        private static Type[] AvailableTypes = new Type[] {
+            typeof(string),
+            typeof(int)
+        };
 
         /// <summary>
         /// Extensions method for filtering entries by all their string fields
@@ -32,12 +36,12 @@ namespace SearchQueryable
         /// <param name="searchQuery">The search query by which the entries should be filtered</param>
         /// <param name="fields">The fields that should be queried with the specified search string</param>
         /// <returns>A filteres collection of entries</returns>
-        public static IQueryable<T> Search<T>(this IQueryable<T> data, string searchQuery, params Expression<Func<T, string>>[] fields)
+        public static IQueryable<T> Search<T, U>(this IQueryable<T> data, string searchQuery, params Expression<Func<T, U>>[] fields)
         {
             var matches = data;
             foreach (var part in searchQuery.ToLowerInvariant().Split()) {
                 if (!string.IsNullOrWhiteSpace(part)) {
-                    matches = matches.Where(SearchHelper.ConstructSearchPredicate<T>(part.Trim(), fields));
+                    matches = matches.Where(SearchHelper.ConstructSearchPredicate<T, U>(part.Trim(), fields));
                 }
             }
 
@@ -57,7 +61,7 @@ namespace SearchQueryable
         ///
         /// `x => x.Name.ToLower().Contains(query) || x.Address.ToLower().Contains(query)`
         ///
-        private static Expression<Func<T, bool>> ConstructSearchPredicate<T>(string searchQuery, params Expression<Func<T, string>>[] fields)
+        private static Expression<Func<T, bool>> ConstructSearchPredicate<T, U>(string searchQuery, params Expression<Func<T, U>>[] fields)
         {
             // Create constant with query
             var constant = Expression.Constant(searchQuery);
@@ -77,10 +81,14 @@ namespace SearchQueryable
                 var propertyExpression = new ExpressionParameterVisitor(f.Parameters.First(), parameter)
                     .VisitAndConvert(f.Body, nameof(ConstructSearchPredicate));
 
-                // Coalesce value, if null, to default (e.g. "c.<property> ?? string.)
-                var transformedProperty = (Expression) Expression.Coalesce(propertyExpression, Expression.Constant(string.Empty));
+                // Check that it's not null
+                var nullValue = typeof(U).IsValueType ? Activator.CreateInstance(typeof(U)) : null;
+                var nullCheckExpression = Expression.NotEqual(propertyExpression, Expression.Constant(nullValue));
 
-                // Run lowercase method on property (e.g. "c.<property>.ToLowerInvariant()")
+                var toStringMethod = f.ReturnType.GetMethod("ToString", new Type[0]);
+                var transformedProperty = Expression.Call(propertyExpression, toStringMethod);
+
+                // Run lowercase method on property (e.g. "c.<property>.ToString().ToLowerInvariant()")
                 transformedProperty = Expression.Call(transformedProperty, lowerMethod);
 
                 // Run contains on property with provided query (e.g. "c.<property>.ToLowerInvariant().Contains(<query>)")
@@ -88,9 +96,9 @@ namespace SearchQueryable
 
                 // Handle case when no OR operation can be constructed
                 if (finalBody == null) {
-                    finalBody = transformedProperty;
+                    finalBody = Expression.AndAlso(nullCheckExpression, transformedProperty);
                 } else {
-                    finalBody = Expression.Or(finalBody, transformedProperty);
+                    finalBody = Expression.Or(finalBody, Expression.AndAlso(nullCheckExpression, transformedProperty));
                 }
             }
 
@@ -120,7 +128,6 @@ namespace SearchQueryable
             var parameter = Expression.Parameter(typeof(T), "c");
 
             // Find methods that will be run on each property
-            var toStringMethod = typeof(string).GetMethod("ToString", new Type[0]);
             var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
             var lowerMethod = typeof(string).GetMethod("ToLowerInvariant", new Type[0]);
 
@@ -134,7 +141,11 @@ namespace SearchQueryable
             // Construct expression
             Expression finalBody = null;
             foreach (var p in propertiesOrFields) {
-                if ((p.MemberType == MemberTypes.Property || p.MemberType == MemberTypes.Field) && p.GetUnderlyingType() == typeof(string)) {
+                // Get type of p
+                var pType = p.GetUnderlyingType();
+                var toStringMethod = pType.GetMethod("ToString", new Type[0]);
+
+                if ((p.MemberType == MemberTypes.Property || p.MemberType == MemberTypes.Field) && AvailableTypes.Contains(p.GetUnderlyingType())) {
                     // Express a property (e.g. "c.<property>" )
                     Expression expressionProperty;
                     if (p.MemberType == MemberTypes.Field) {
@@ -142,12 +153,13 @@ namespace SearchQueryable
                     } else {
                         expressionProperty = Expression.Property(parameter, p.Name);
                     }
-
-                    // Coalesce value, if null, to default (e.g. "c.<property> ?? string.)
-                    var transformedProperty = (Expression) Expression.Coalesce(expressionProperty, Expression.Constant(string.Empty));
+                    
+                    // Check that property value is not null (or default) (e.g. "c.<property> != null")
+                    var nullValue = pType.IsValueType ? Activator.CreateInstance(pType) : null;
+                    var nullCheckExpression = Expression.NotEqual(expressionProperty, Expression.Constant(nullValue, pType));
 
                     // Run ToString method on property (e.g. "c.<property>.ToString()")
-                    transformedProperty = Expression.Call(transformedProperty, toStringMethod);
+                    var transformedProperty = Expression.Call(expressionProperty, toStringMethod);
 
                     // Run lowercase method on property (e.g. "c.<property>.ToString().ToLowerInvariant()")
                     transformedProperty = Expression.Call(transformedProperty, lowerMethod);
@@ -157,12 +169,15 @@ namespace SearchQueryable
 
                     // Handle case when no OR operation can be constructed
                     if (finalBody == null) {
-                        finalBody = transformedProperty;
+                        finalBody = Expression.AndAlso(nullCheckExpression, transformedProperty);
+                        // finalBody = transformedProperty;
                     } else {
-                        finalBody = Expression.Or(finalBody, transformedProperty);
+                        finalBody = Expression.Or(finalBody, Expression.AndAlso(nullCheckExpression, transformedProperty));
+                        // finalBody = Expression.Or(finalBody, transformedProperty);
                     }
                 }
             }
+
 
             // Return the constructed expression
             return Expression.Lambda<Func<T, bool>>(finalBody, parameter);
