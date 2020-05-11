@@ -133,6 +133,7 @@ namespace SearchQueryable.Tests
             Assert.Single(results, _books.Single(b => b.Title.Equals("Othello")));
         }
 
+        [Fact]
         public void WorksOnMultiplePredicateReturnTypes()
         {
             var results = _books.Search("Othello", b => b.Title, b => b.YearPublished);

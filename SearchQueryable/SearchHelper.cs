@@ -6,7 +6,7 @@ using System.Reflection;
 
 namespace SearchQueryable
 {
-    public static class SearchHelper
+    internal static class SearchHelper
     {
         /// <summary>
         /// A constant definition of the ToLowerInvariant method to use in expressions
@@ -17,41 +17,6 @@ namespace SearchQueryable
         /// A constant definition of the Contants method to use in expressions
         /// </summary>
         private static readonly MethodInfo ContainsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
-
-        /// <summary>
-        /// Extensions method for filtering entries by all their string fields
-        /// </summary>
-        /// <param name="searchQuery">The search query by which the entries should be filtered</param>
-        /// <returns>A filteres collection of entries</returns>
-        public static IQueryable<T> Search<T>(this IQueryable<T> data, string searchQuery)
-        {
-            var matches = data;
-            foreach (var part in searchQuery.ToLowerInvariant().Split()) {
-                if (!string.IsNullOrWhiteSpace(part)) {
-                    matches = matches.Where(SearchHelper.ConstructSearchPredicate<T>(part.Trim()));
-                }
-            }
-
-            return matches;
-        }
-
-        /// <summary>
-        /// Extensions method for filtering entries by specified fields
-        /// </summary>
-        /// <param name="searchQuery">The search query by which the entries should be filtered</param>
-        /// <param name="fields">The fields that should be queried with the specified search string</param>
-        /// <returns>A filteres collection of entries</returns>
-        public static IQueryable<T> Search<T>(this IQueryable<T> data, string searchQuery, params Expression<Func<T, object>>[] fields)
-        {
-            var matches = data;
-            foreach (var part in searchQuery.ToLowerInvariant().Split()) {
-                if (!string.IsNullOrWhiteSpace(part)) {
-                    matches = matches.Where(SearchHelper.ConstructSearchPredicate<T>(part.Trim(), fields));
-                }
-            }
-
-            return matches;
-        }
 
         /// <summary>
         /// Constructs an expression that is used to filter entries and execute a search for the specified query
@@ -66,7 +31,7 @@ namespace SearchQueryable
         ///
         /// `x => x.Name.ToLower().Contains(query) || x.Address.ToLower().Contains(query)`
         ///
-        private static Expression<Func<TObject, bool>> ConstructSearchPredicate<TObject>(string searchQuery, params Expression<Func<TObject, object>>[] fields)
+        internal static Expression<Func<TObject, bool>> ConstructSearchPredicate<TObject>(string searchQuery, params Expression<Func<TObject, object>>[] fields)
         {
             // Create constant with query
             var constant = Expression.Constant(searchQuery);
@@ -119,7 +84,7 @@ namespace SearchQueryable
         ///
         /// `x => x.Name.ToLower().Contains(query) || x.Address.ToLower().Contains(query)`
         ///
-        private static Expression<Func<T, bool>> ConstructSearchPredicate<T>(string query)
+        internal static Expression<Func<T, bool>> ConstructSearchPredicate<T>(string query)
         {
             // Create constant with query
             var constant = Expression.Constant(query);

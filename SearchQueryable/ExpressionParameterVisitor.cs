@@ -7,7 +7,7 @@ namespace SearchQueryable
     /// <summary>
     /// A visitor that programmatically walks through an expression tree and replaces the parameters
     /// </summary>
-    public class ExpressionParameterVisitor : ExpressionVisitor
+    internal class ExpressionParameterVisitor : ExpressionVisitor
     {
         private readonly ParameterExpression from;
         private readonly ParameterExpression to;
@@ -17,7 +17,7 @@ namespace SearchQueryable
         /// </summary>
         /// <param name="from">The original parameters to be replaced</param>
         /// <param name="to">The parameters with which to replace the original ones</param>
-        public ExpressionParameterVisitor(ParameterExpression from, ParameterExpression to)
+        internal ExpressionParameterVisitor(ParameterExpression from, ParameterExpression to)
         {
             if (from == null) {
                 throw new ArgumentNullException("From is required");
@@ -30,6 +30,7 @@ namespace SearchQueryable
             this.from = from;
             this.to = to;
         }
+
         protected override Expression VisitParameter(ParameterExpression node)
         {
             if (node == from) {
