@@ -99,5 +99,7 @@ namespace SearchQueryable.Tests
         }
 
         // TODO: search for int23, DateTIme, float, decimal?
+
+        // TODO: add tests for child objects (p => p.Author.FirstName)
     }
 }
