@@ -80,7 +80,24 @@ namespace SearchQueryable.Tests
             Assert.Single(results, _books.Last());
         }
 
-        // TODO: search for null string
+        [Fact]
+        public void DoesNotBreakOnNullValues()
+        {
+            var books = _books.ToList();
+            books[0].ISBN = null;
+            var results = books.AsQueryable().Search("ISBN 1234510");
+            Assert.Single(results, _books.Last());
+        }
+
+        [Fact]
+        public void DoesNotBreakOnNullValuesWithPredicate()
+        {
+            var books = _books.ToList();
+            books[0].ISBN = null;
+            var results = books.AsQueryable().Search("ISBN 1234510", p => p.ISBN);
+            Assert.Single(results, _books.Last());
+        }
+
         // TODO: search for int23, DateTIme, float, decimal?
     }
 }
