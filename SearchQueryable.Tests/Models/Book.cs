@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace SearchQueryable.Tests
 {
@@ -14,6 +15,14 @@ namespace SearchQueryable.Tests
 
         public Publisher Publisher  { get; private set; }
 
+        public IEnumerable<string> Chapters { get; set; }
+
+        public IReadOnlyCollection<Order> Orders;
+
+        public DateTimeOffset Date { get; set; }
+
+        public BookStatus Status;
+
         public Book(string title, string author, int year, string isbn, decimal price, Publisher publisher = null)
         {
             Title = title;
@@ -28,5 +37,12 @@ namespace SearchQueryable.Tests
         {
             return $"{Author} - {Title} ({YearPublished})";
         }
+    }
+
+    public enum BookStatus
+    {
+        Created,
+        Sold,
+        Cancelled
     }
 }

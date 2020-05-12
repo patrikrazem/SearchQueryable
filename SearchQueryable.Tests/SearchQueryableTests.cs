@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Xunit;
 
@@ -20,6 +21,34 @@ namespace SearchQueryable.Tests
                 new Book("The Will To Live", "Invented Person", 1523, "ISBN 1234510", 0.00m),
             }.AsQueryable();
 
+        }
+
+        [Fact]
+        public void DoesNotBreakOnNullQuery()
+        {
+            var results = _books.Search(null);
+            Assert.Equal(5, results.Count());
+        }
+        
+        [Fact]
+        public void DoesNotBreakOnEmptyQuery()
+        {
+            var results = _books.Search("    ");
+            Assert.Equal(5, results.Count());
+        }
+
+        [Fact]
+        public void DoesNotBreakOnNullPredicates()
+        {
+            var results = _books.Search("Romeo", null);
+            Assert.Equal(5, results.Count());
+        }
+
+        [Fact]
+        public void DoesNotBreakOnEmptyPredicates()
+        {
+            var results = _books.Search("Romeo", new System.Linq.Expressions.Expression<Func<Book, object>>[0]);
+            Assert.Equal(5, results.Count());
         }
 
         [Fact]
@@ -141,10 +170,20 @@ namespace SearchQueryable.Tests
         }
 
         // [Fact]
-        // public void WorksOnComplexTypedChildrenWithPredicate()
+        // public void PerfTest()
         // {
-        //     var results = _books.Search("classic", b => b.Publisher.Address);
-        //     Assert.Single(results, _books.Single(b => b.Title.Equals("Othello")));
+        //     var books = new List<Book>();
+        //     for (int i = 0; i < 100000; i++)
+        //     {
+        //         books.Add(new Book($"Book {i}", $"Author {i}", 1000 + i, $"ISBN 11111{i}", 10.10m * (i +1)));
+        //     }
+
+        //     var bks = books.AsQueryable();
+
+        //     var s = Stopwatch.StartNew();
+        //     var results = bks.Search("Shakespeare Othello");
+        //     s.Stop();
+        //     System.Console.WriteLine(s.ElapsedMilliseconds);
         // }
 
         // TODO: search for int23, DateTIme, float, decimal?

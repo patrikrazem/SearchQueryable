@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Linq.Expressions;
@@ -95,8 +96,7 @@ namespace SearchQueryable
             foreach (var p in propertiesOrFields) {
                 // Get type of p
                 var pType = p.GetUnderlyingType();
-
-                if ((p.MemberType == MemberTypes.Property || p.MemberType == MemberTypes.Field)) {
+                if ((p.MemberType == MemberTypes.Property || p.MemberType == MemberTypes.Field) && !pType.IsCollection()) {
                     // Express a property (e.g. "c.<property>" )
                     Expression propertyExpression;
                     if (p.MemberType == MemberTypes.Field) {
@@ -157,6 +157,15 @@ namespace SearchQueryable
             } else {
                 return Expression.AndAlso(nullCheckExpression, transformedProperty);
             }
+        }
+
+        private static bool IsCollection(this Type type)
+        {
+            // Strings are formally collections, so we should handle this separately
+            if (type == null || type == typeof(string)) {
+                return false;
+            }
+            return typeof(IEnumerable).IsAssignableFrom(type);
         }
 
         private static Type GetUnderlyingType(this MemberInfo member)

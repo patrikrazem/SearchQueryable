@@ -13,7 +13,13 @@ namespace SearchQueryable
         /// <returns>A filteres collection of entries</returns>
         public static IQueryable<T> Search<T>(this IQueryable<T> data, string searchQuery)
         {
+            // Simply return the entire collection, if no search query is specified
+            if (string.IsNullOrWhiteSpace(searchQuery)) {
+                return data;
+            }
+
             var matches = data;
+            // Split the search query and construct predicates for each
             foreach (var part in searchQuery.ToLowerInvariant().Split()) {
                 if (!string.IsNullOrWhiteSpace(part)) {
                     matches = matches.Where(SearchHelper.ConstructSearchPredicate<T>(part.Trim()));
@@ -31,7 +37,13 @@ namespace SearchQueryable
         /// <returns>A filteres collection of entries</returns>
         public static IQueryable<T> Search<T>(this IQueryable<T> data, string searchQuery, params Expression<Func<T, object>>[] fields)
         {
+            // Simply return the entire collection, if no search query is specified
+            if (string.IsNullOrWhiteSpace(searchQuery) || fields == null || fields.Length < 1) {
+                return data;
+            }
+
             var matches = data;
+            // Split the search query and construct predicates for each
             foreach (var part in searchQuery.ToLowerInvariant().Split()) {
                 if (!string.IsNullOrWhiteSpace(part)) {
                     matches = matches.Where(SearchHelper.ConstructSearchPredicate<T>(part.Trim(), fields));
