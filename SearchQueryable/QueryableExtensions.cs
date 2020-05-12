@@ -20,7 +20,7 @@ namespace SearchQueryable
 
             var matches = data;
             // Split the search query and construct predicates for each
-            foreach (var part in searchQuery.ToLowerInvariant().Split()) {
+            foreach (var part in searchQuery.ToUpperInvariant().Split()) {
                 if (!string.IsNullOrWhiteSpace(part)) {
                     matches = matches.Where(SearchHelper.ConstructSearchPredicate<T>(part.Trim()));
                 }
@@ -44,7 +44,7 @@ namespace SearchQueryable
 
             var matches = data;
             // Split the search query and construct predicates for each
-            foreach (var part in searchQuery.ToLowerInvariant().Split()) {
+            foreach (var part in searchQuery.ToUpperInvariant().Split()) {
                 if (!string.IsNullOrWhiteSpace(part)) {
                     matches = matches.Where(SearchHelper.ConstructSearchPredicate<T>(part.Trim(), fields));
                 }

@@ -12,7 +12,7 @@ namespace SearchQueryable
         /// <summary>
         /// A constant definition of the ToLowerInvariant method to use in expressions
         /// </summary>
-        private static readonly MethodInfo LowerMethod = typeof(string).GetMethod("ToLowerInvariant", new Type[0]);
+        private static readonly MethodInfo UpperMethod = typeof(string).GetMethod("ToUpperInvariant", new Type[0]);
 
         /// <summary>
         /// A constant definition of the Contants method to use in expressions
@@ -96,7 +96,7 @@ namespace SearchQueryable
             foreach (var p in propertiesOrFields) {
                 // Get type of p
                 var pType = p.GetUnderlyingType();
-                if ((p.MemberType == MemberTypes.Property || p.MemberType == MemberTypes.Field) && !pType.IsCollection()) {
+                if ((p.MemberType == MemberTypes.Property || p.MemberType == MemberTypes.Field) && AllowedTypes.Contains(pType)) {
                     // Express a property (e.g. "c.<property>" )
                     Expression propertyExpression;
                     if (p.MemberType == MemberTypes.Field) {
@@ -147,7 +147,7 @@ namespace SearchQueryable
             var transformedProperty = Expression.Call(propertyExpression, toStringMethod);
 
             // Run lowercase method on property (e.g. "c.<property>.ToString().ToLowerInvariant()")
-            transformedProperty = Expression.Call(transformedProperty, LowerMethod);
+            transformedProperty = Expression.Call(transformedProperty, UpperMethod);
 
             // Run contains on property with provided query (e.g. "c.<property>.ToString().ToLowerInvariant().Contains(<query>)")
             transformedProperty = Expression.Call(transformedProperty, ContainsMethod, queryConstant);
