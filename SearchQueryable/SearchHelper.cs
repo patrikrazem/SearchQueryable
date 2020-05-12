@@ -47,17 +47,8 @@ namespace SearchQueryable
                 var propertyExpression = new ExpressionParameterVisitor(f.Parameters.First(), parameter)
                     .VisitAndConvert(f.Body, nameof(ConstructSearchPredicate));
 
-                // Construct an expression that will check that the value is not null
-                var nullCheckExpression = GetNullCheckExpression(propertyExpression, propertyExpression.Type);
-
-                // Construct an expression that will query the value
-                var queryExpression = GetQueryExpression(propertyExpression, constant, propertyExpression.Type);
-
-                // Combine the null checking expression, if needed (reference types)
-                var partialExpression = queryExpression;
-                if (nullCheckExpression != null) {
-                    partialExpression = Expression.AndAlso(nullCheckExpression, queryExpression);
-                }
+                // Get query expression
+                var partialExpression = GetQueryExpression(propertyExpression, constant, propertyExpression.Type);
 
                 // Handle case when no OR operation can be constructed
                 if (finalExpression == null) {
@@ -107,23 +98,15 @@ namespace SearchQueryable
 
                 if ((p.MemberType == MemberTypes.Property || p.MemberType == MemberTypes.Field)) {
                     // Express a property (e.g. "c.<property>" )
-                    Expression expressionProperty;
+                    Expression propertyExpression;
                     if (p.MemberType == MemberTypes.Field) {
-                        expressionProperty = Expression.Field(parameter, p.Name);
+                        propertyExpression = Expression.Field(parameter, p.Name);
                     } else {
-                        expressionProperty = Expression.Property(parameter, p.Name);
+                        propertyExpression = Expression.Property(parameter, p.Name);
                     }
-                    
-                    // Check that property value is not null (or default) (e.g. "c.<property> != null")
-                    var nullCheckExpression = GetNullCheckExpression(expressionProperty, pType);
 
                     // Get query expression
-                    var queryExpression = GetQueryExpression(expressionProperty, constant, pType);
-
-                    var partialExpression = queryExpression;
-                    if (nullCheckExpression != null) {
-                        partialExpression = Expression.AndAlso(nullCheckExpression, queryExpression);
-                    }
+                    var partialExpression = GetQueryExpression(propertyExpression, constant, pType);
 
                     // Handle case when no OR operation can be constructed
                     if (finalExpression == null) {
@@ -138,27 +121,7 @@ namespace SearchQueryable
             // Return the constructed expression
             return Expression.Lambda<Func<T, bool>>(finalExpression, parameter);
         }
-        
-        /// <summary>
-        /// Constructs an expression to check that the property is not null, if needed
-        /// </summary>
-        /// <param name="propertyExpression">The expression of the property</param>
-        /// <param name="propertyType">The type of the property</param>
-        /// The resulting expression will check that the property is not null (e.g. "c.<property> != null")
-        /// This is only required for reference types, since value types have non-null default values
-        private static Expression GetNullCheckExpression(Expression propertyExpression, Type propertyType)
-        {
-            // Value types have non-null defaults and can be safely operated on
-            if (propertyType.IsValueType) {
-                return null;
-            }
-
-            // Check that property value is not null (or default) (e.g. "c.<property> != null")
-            var nullCheckExpression = Expression.NotEqual(propertyExpression, Expression.Constant(null, propertyType));
-
-            return nullCheckExpression;
-        }
-        
+    
         /// <summary>
         /// Constructs an expression to query the property for the specified search term
         /// </summary>
@@ -166,10 +129,18 @@ namespace SearchQueryable
         /// <param name="queryConstant">The expression representing the search term</param>
         /// <param name="propertyType">The type of the property to be tested</param>
         /// The resulting expression will test the property for inclusion of the query
-        /// c.<property>.ToString().ToLowerInvariant().Contains(<queryConstant>)
+        /// (e.g. "c.<property>.ToString().ToLowerInvariant().Contains(<queryConstant>)")
         private static Expression GetQueryExpression(Expression propertyExpression, Expression queryConstant, Type propertyType)
         {
-            // Find methods that will be run on each property
+            // Check that property value is not null (or default) (e.g. "c.<property> != null")
+            Expression nullCheckExpression = null;
+
+            // Value types can safely be operated on, since they have non-null default values
+            if (!propertyType.IsValueType) {
+                nullCheckExpression = Expression.NotEqual(propertyExpression, Expression.Constant(null, propertyType));
+            }
+
+            // Find the ToString method that should be executed for the specific type
             var toStringMethod = propertyType.GetMethod("ToString", new Type[0]);
 
             // Run ToString method on property (e.g. "c.<property>.ToString()")
@@ -181,7 +152,11 @@ namespace SearchQueryable
             // Run contains on property with provided query (e.g. "c.<property>.ToString().ToLowerInvariant().Contains(<query>)")
             transformedProperty = Expression.Call(transformedProperty, ContainsMethod, queryConstant);
 
-            return transformedProperty;
+            if (nullCheckExpression == null) {
+                return transformedProperty;
+            } else {
+                return Expression.AndAlso(nullCheckExpression, transformedProperty);
+            }
         }
 
         private static Type GetUnderlyingType(this MemberInfo member)
