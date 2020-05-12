@@ -10,11 +10,11 @@ namespace SearchQueryable.Tests
 
         public string ISBN { get; set; }
 
-        public float Price { get; set; }
+        public decimal Price { get; set; }
 
         public Publisher Publisher  { get; private set; }
 
-        public Book(string title, string author, int year, string isbn, float price, Publisher publisher = null)
+        public Book(string title, string author, int year, string isbn, decimal price, Publisher publisher = null)
         {
             Title = title;
             Author = author;

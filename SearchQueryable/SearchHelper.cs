@@ -138,17 +138,7 @@ namespace SearchQueryable
             // Return the constructed expression
             return Expression.Lambda<Func<T, bool>>(finalExpression, parameter);
         }
-
-        /// <summary>
-        /// Constructs an expression to check that the property is not null, if needed
-        /// </summary>
-        /// <param name="propertyExpression">The expression of the property</param>
-        /// The resulting expression will check that the property is not null (e.g. "c.<property> != null")
-        /// This is only required for reference types, since value types have non-null default values
-        private static Expression GetNullCheckExpression<TMember>(Expression propertyExpression)
-            => GetNullCheckExpression(propertyExpression, typeof(TMember));
         
-
         /// <summary>
         /// Constructs an expression to check that the property is not null, if needed
         /// </summary>
@@ -168,16 +158,6 @@ namespace SearchQueryable
 
             return nullCheckExpression;
         }
-
-        /// <summary>
-        /// Constructs an expression to query the property for the specified search term
-        /// </summary>
-        /// <param name="propertyExpression">The expression of the property being tested</param>
-        /// <param name="queryConstant">The expression representing the search term</param>
-        /// The resulting expression will test the property for inclusion of the query
-        /// c.<property>.ToString().ToLowerInvariant().Contains(<queryConstant>)
-        private static Expression GetQueryExpression<TMember>(Expression propertyExpression, Expression queryConstant)
-            =>  GetQueryExpression(propertyExpression, queryConstant, typeof(TMember));
         
         /// <summary>
         /// Constructs an expression to query the property for the specified search term
