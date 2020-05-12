@@ -55,7 +55,7 @@ namespace SearchQueryable
                 if (finalExpression == null) {
                     finalExpression = partialExpression;
                 } else {
-                    finalExpression = Expression.Or(finalExpression, partialExpression);
+                    finalExpression = Expression.OrElse(finalExpression, partialExpression);
                 }
             }
 
@@ -112,7 +112,7 @@ namespace SearchQueryable
                     if (finalExpression == null) {
                         finalExpression = partialExpression;
                     } else {
-                        finalExpression = Expression.Or(finalExpression, partialExpression);
+                        finalExpression = Expression.OrElse(finalExpression, partialExpression);
                     }
                 }
             }
