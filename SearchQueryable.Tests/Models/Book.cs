@@ -23,7 +23,7 @@ namespace SearchQueryable.Tests
 
         public decimal Price { get; set; }
 
-        public int PublisherId { get; private set; }
+        public int? PublisherId { get; private set; }
 
         public Publisher Publisher  { get; private set; }
 

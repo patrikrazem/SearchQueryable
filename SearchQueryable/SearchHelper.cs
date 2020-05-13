@@ -11,9 +11,14 @@ namespace SearchQueryable
     internal static class SearchHelper
     {
         /// <summary>
-        /// A constant definition of the ToLowerInvariant method to use in expressions
+        /// A constant definition of the ToUpperInvariant method to use in expressions
         /// </summary>
-        private static readonly MethodInfo UpperMethod = typeof(string).GetMethod("ToUpperInvariant", new Type[0]);
+        private static readonly MethodInfo UpperInvariantMethod = typeof(string).GetMethod("ToUpperInvariant", new Type[0]);
+
+        /// <summary>
+        /// A constant definition of the ToUpperInvariant method to use in expressions
+        /// </summary>
+        private static readonly MethodInfo UpperMethod = typeof(string).GetMethod("ToUpper", new Type[0]);
 
         /// <summary>
         /// A constant definition of the Contants method to use in expressions
@@ -50,7 +55,7 @@ namespace SearchQueryable
                     .VisitAndConvert(m.Body, nameof(ConstructSearchPredicate));
 
                 // Get query expression
-                var partialExpression = GetQueryExpression(memberExpression, constant, memberExpression.Type);
+                var partialExpression = GetQueryExpression(memberExpression, constant, memberExpression.Type, CompatiblityMode.All);
 
                 // Handle case when no OR operation can be constructed
                 if (finalExpression == null) {
@@ -109,7 +114,7 @@ namespace SearchQueryable
                     }
 
                     // Get query expression (e.g. "c.<member>.ToString().ToUpperInvariant().Contains(<constant>)")
-                    var partialExpression = GetQueryExpression(memberExpression, constant, underlyingType);
+                    var partialExpression = GetQueryExpression(memberExpression, constant, underlyingType, mode);
 
                     // Handle case when no OR operation can be constructed (it's the first condition)
                     if (finalExpression == null) {
@@ -133,7 +138,7 @@ namespace SearchQueryable
         /// <param name="propertyType">The type of the property to be tested</param>
         /// The resulting expression will test the property for inclusion of the query
         /// (e.g. "c.<property>.ToString().ToLowerInvariant().Contains(<queryConstant>)")
-        private static Expression GetQueryExpression(Expression propertyExpression, Expression queryConstant, Type propertyType)
+        private static Expression GetQueryExpression(Expression propertyExpression, Expression queryConstant, Type propertyType, CompatiblityMode mode)
         {
             // Check that property value is not null (or default) (e.g. "c.<property> != null")
             Expression nullCheckExpression = null;
@@ -143,16 +148,24 @@ namespace SearchQueryable
                 nullCheckExpression = Expression.NotEqual(propertyExpression, Expression.Constant(null, propertyType));
             }
 
-            // Find the ToString method that should be executed for the specific type
-            var toStringMethod = propertyType.GetMethod("ToString", new Type[0]);
+            var transformedProperty = propertyExpression;
 
-            // Run ToString method on property (e.g. "c.<property>.ToString()")
-            var transformedProperty = Expression.Call(propertyExpression, toStringMethod);
+            // In strict mode, ToString and ToUpperInvariant cannot be used (provider might not know how to translate them)
+            if (mode == CompatiblityMode.Strict) {
+                // Run uppercase method on property (e.g. "c.<property>.ToUpper()")
+                transformedProperty = Expression.Call(transformedProperty, UpperMethod);
+            } else {
+                // Find the ToString method that should be executed for the specific type
+                var toStringMethod = propertyType.GetMethod("ToString", new Type[0]);
 
-            // Run lowercase method on property (e.g. "c.<property>.ToString().ToLowerInvariant()")
-            transformedProperty = Expression.Call(transformedProperty, UpperMethod);
+                // Run ToString method on property (e.g. "c.<property>.ToString()")
+                transformedProperty = Expression.Call(propertyExpression, toStringMethod);
+                
+                // Run uppercase method on property (e.g. "c.<property>.ToString().ToUpperInvariant()")
+                transformedProperty = Expression.Call(transformedProperty, UpperInvariantMethod);
+            }
 
-            // Run contains on property with provided query (e.g. "c.<property>.ToString().ToLowerInvariant().Contains(<query>)")
+            // Run contains on property with provided query (e.g. "c.<property>.ToString().ToUpperInvariant().Contains(<query>)")
             transformedProperty = Expression.Call(transformedProperty, ContainsMethod, queryConstant);
 
             if (nullCheckExpression == null) {
