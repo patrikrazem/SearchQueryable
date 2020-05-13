@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Linq.Expressions;
@@ -32,7 +33,7 @@ namespace SearchQueryable
         ///
         /// `x => x.Name.ToLower().Contains(query) || x.Address.ToLower().Contains(query)`
         ///
-        internal static Expression<Func<TObject, bool>> ConstructSearchPredicate<TObject>(string searchQuery, params Expression<Func<TObject, object>>[] fields)
+        internal static Expression<Func<TObject, bool>> ConstructSearchPredicate<TObject>(string searchQuery, params Expression<Func<TObject, object>>[] members)
         {
             // Create constant with query
             var constant = Expression.Constant(searchQuery);
@@ -42,14 +43,14 @@ namespace SearchQueryable
 
             // Construct expression
             Expression finalExpression = null;
-            foreach (var f in fields) {
+            foreach (var m in members) {
                 // Visit the provided expression and replace the input parameter with the one defined above ("c")
                 // e.g. (from "x.Something" we get "c.Something")
-                var propertyExpression = new ExpressionParameterVisitor(f.Parameters.First(), parameter)
-                    .VisitAndConvert(f.Body, nameof(ConstructSearchPredicate));
+                var memberExpression = new ExpressionParameterVisitor(m.Parameters.First(), parameter)
+                    .VisitAndConvert(m.Body, nameof(ConstructSearchPredicate));
 
                 // Get query expression
-                var partialExpression = GetQueryExpression(propertyExpression, constant, propertyExpression.Type);
+                var partialExpression = GetQueryExpression(memberExpression, constant, memberExpression.Type);
 
                 // Handle case when no OR operation can be constructed
                 if (finalExpression == null) {
@@ -76,39 +77,41 @@ namespace SearchQueryable
         ///
         /// `x => x.Name.ToLower().Contains(query) || x.Address.ToLower().Contains(query)`
         ///
-        internal static Expression<Func<T, bool>> ConstructSearchPredicate<T>(string query)
+        internal static Expression<Func<T, bool>> ConstructSearchPredicate<T>(string query, CompatiblityMode mode)
         {
             // Create constant with query
             var constant = Expression.Constant(query);
 
-            // Input parameter (e.g. "c => ")
-            var parameter = Expression.Parameter(typeof(T), "c");
-
             // Get all object properties
             var type = typeof(T);
-            var flags = BindingFlags.Public | BindingFlags.Instance;
-            var propertiesOrFields = type
-                .GetFields(flags).Cast<MemberInfo>()
-                .Concat(type.GetProperties(flags)).ToArray();
+
+            // Input parameter (e.g. "c => ")
+            var parameter = Expression.Parameter(type, "c");
+            
+            // Get appropriate members to test
+            var members = GetAvailableMembers(type, mode);
 
             // Construct expression
             Expression finalExpression = null;
-            foreach (var p in propertiesOrFields) {
+
+            foreach (var m in members) {
                 // Get type of p
-                var pType = p.GetUnderlyingType();
-                if ((p.MemberType == MemberTypes.Property || p.MemberType == MemberTypes.Field) && AllowedTypes.Contains(pType)) {
-                    // Express a property (e.g. "c.<property>" )
-                    Expression propertyExpression;
-                    if (p.MemberType == MemberTypes.Field) {
-                        propertyExpression = Expression.Field(parameter, p.Name);
+                var underlyingType = m.GetUnderlyingType();
+                
+                // In Strict mode, only string properties are taken into account, otherwise all props and fields are (except collections)
+                if ((mode == CompatiblityMode.Strict && underlyingType == typeof(string)) || (mode == CompatiblityMode.All && !underlyingType.IsCollection())) {
+                    // Express a member (e.g. "c.<member>" )
+                    Expression memberExpression;
+                    if (m.MemberType == MemberTypes.Field) {
+                        memberExpression = Expression.Field(parameter, m.Name);
                     } else {
-                        propertyExpression = Expression.Property(parameter, p.Name);
+                        memberExpression = Expression.Property(parameter, m.Name);
                     }
 
-                    // Get query expression
-                    var partialExpression = GetQueryExpression(propertyExpression, constant, pType);
+                    // Get query expression (e.g. "c.<member>.ToString().ToUpperInvariant().Contains(<constant>)")
+                    var partialExpression = GetQueryExpression(memberExpression, constant, underlyingType);
 
-                    // Handle case when no OR operation can be constructed
+                    // Handle case when no OR operation can be constructed (it's the first condition)
                     if (finalExpression == null) {
                         finalExpression = partialExpression;
                     } else {
@@ -159,6 +162,22 @@ namespace SearchQueryable
             }
         }
 
+        private static IEnumerable<MemberInfo> GetAvailableMembers(Type type, CompatiblityMode mode)
+        {
+            var flags = BindingFlags.Public | BindingFlags.Instance;
+
+            if (mode == CompatiblityMode.Strict) {
+                return type
+                    .GetProperties(flags)
+                    .Where(m => m.CanWrite && m.MemberType == MemberTypes.Property);
+            } else {
+                return type
+                    .GetFields(flags).Cast<MemberInfo>()
+                    .Concat(type.GetProperties(flags)).ToArray()
+                    .Where(m => m.MemberType == MemberTypes.Property || m.MemberType == MemberTypes.Field);
+            }   
+        }
+
         private static bool IsCollection(this Type type)
         {
             // Strings are formally collections, so we should handle this separately
@@ -180,10 +199,7 @@ namespace SearchQueryable
                 case MemberTypes.Property:
                     return ((PropertyInfo)member).PropertyType;
                 default:
-                    throw new ArgumentException
-                    (
-                     "Input MemberInfo must be if type EventInfo, FieldInfo, MethodInfo, or PropertyInfo"
-                    );
+                    throw new ArgumentException("Input MemberInfo must be if type EventInfo, FieldInfo, MethodInfo, or PropertyInfo");
             }
         }
     }

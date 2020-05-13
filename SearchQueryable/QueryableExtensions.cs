@@ -11,7 +11,7 @@ namespace SearchQueryable
         /// </summary>
         /// <param name="searchQuery">The search query by which the entries should be filtered</param>
         /// <returns>A filteres collection of entries</returns>
-        public static IQueryable<T> Search<T>(this IQueryable<T> data, string searchQuery)
+        public static IQueryable<T> Search<T>(this IQueryable<T> data, string searchQuery, CompatiblityMode mode = CompatiblityMode.Strict)
         {
             // Simply return the entire collection, if no search query is specified
             if (string.IsNullOrWhiteSpace(searchQuery)) {
@@ -22,7 +22,7 @@ namespace SearchQueryable
             // Split the search query and construct predicates for each
             foreach (var part in searchQuery.ToUpperInvariant().Split()) {
                 if (!string.IsNullOrWhiteSpace(part)) {
-                    matches = matches.Where(SearchHelper.ConstructSearchPredicate<T>(part.Trim()));
+                    matches = matches.Where(SearchHelper.ConstructSearchPredicate<T>(part.Trim(), mode));
                 }
             }
 

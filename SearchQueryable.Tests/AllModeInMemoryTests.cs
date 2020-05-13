@@ -6,11 +6,11 @@ using Xunit;
 
 namespace SearchQueryable.Tests
 {
-    public class SearchQueryableTests
+    public class AllModeInMemoryTests
     {
         public readonly IQueryable<Book> _books;
 
-        public SearchQueryableTests()
+        public AllModeInMemoryTests()
         {
             _books = new List<Book>()
             {
@@ -26,14 +26,14 @@ namespace SearchQueryable.Tests
         [Fact]
         public void DoesNotBreakOnNullQuery()
         {
-            var results = _books.Search(null);
+            var results = _books.Search(null, CompatiblityMode.All);
             Assert.Equal(5, results.Count());
         }
         
         [Fact]
         public void DoesNotBreakOnEmptyQuery()
         {
-            var results = _books.Search("    ");
+            var results = _books.Search("    ", CompatiblityMode.All);
             Assert.Equal(5, results.Count());
         }
 
@@ -54,37 +54,30 @@ namespace SearchQueryable.Tests
         [Fact]
         public void CanSearchByTitle()
         {
-            var results = _books.Search("Romeo");
+            var results = _books.Search("Romeo", CompatiblityMode.All);
             Assert.Single(results, _books.First());
         }
 
         [Fact]
         public void CanSearchByAuthor()
         {
-            var results = _books.Search("Shakespeare");
+            var results = _books.Search("Shakespeare", CompatiblityMode.All);
             Assert.Equal(3, results.Count());
             Assert.Contains(_books.First(), results);
             Assert.Contains(_books.Skip(2).First(), results);
         }
 
-        // [Fact]
-        // public void CanSearchByYear()
-        // {
-        //     var results = _books.Search("2002");
-        //     Assert.Single(results, _books.Skip(3).First());
-        // }
-
         [Fact]
         public void CanSearchWithLowercase()
         {
-            var results = _books.Search("romeo");
+            var results = _books.Search("romeo", CompatiblityMode.All);
             Assert.Single(results, _books.First());
         }
 
         [Fact]
         public void CanSearchWithMixedCase()
         {
-            var results = _books.Search("RoMeO");
+            var results = _books.Search("RoMeO", CompatiblityMode.All);
             Assert.Single(results, _books.First());
         }
 
@@ -114,7 +107,7 @@ namespace SearchQueryable.Tests
         {
             var books = _books.ToList();
             books[0].ISBN = null;
-            var results = books.AsQueryable().Search("ISBN 1234510");
+            var results = books.AsQueryable().Search("ISBN 1234510", CompatiblityMode.All);
             Assert.Single(results, _books.Last());
         }
 
@@ -130,7 +123,7 @@ namespace SearchQueryable.Tests
         [Fact]
         public void WorksOnIntegerFields()
         {
-            var results = _books.Search("1523");
+            var results = _books.Search("1523", CompatiblityMode.All);
             Assert.Single(results, _books.Last());
         }
 
@@ -144,7 +137,7 @@ namespace SearchQueryable.Tests
         [Fact]
         public void WorksOnDecimalFields()
         {
-            var results = _books.Search("99.99");
+            var results = _books.Search("99.99", CompatiblityMode.All);
             Assert.Single(results, _books.First());
         }
         
@@ -158,7 +151,7 @@ namespace SearchQueryable.Tests
         [Fact]
         public void WorksOnComplexTypedChildren()
         {
-            var results = _books.Search("classic");
+            var results = _books.Search("classic", CompatiblityMode.All);
             Assert.Single(results, _books.Single(b => b.Title.Equals("Othello")));
         }
 
@@ -169,22 +162,21 @@ namespace SearchQueryable.Tests
             Assert.Single(results);
         }
 
-        // [Fact]
-        // public void PerfTest()
-        // {
-        //     var books = new List<Book>();
-        //     for (int i = 0; i < 100000; i++)
-        //     {
-        //         books.Add(new Book($"Book {i}", $"Author {i}", 1000 + i, $"ISBN 11111{i}", 10.10m * (i +1)));
-        //     }
+        [Fact(Skip = "Not relevant")]
+        public void PerfTest()
+        {
+            var books = new List<Book>();
+            for (int i = 0; i < 100000; i++)
+            {
+                books.Add(new Book($"Book {i}", $"Author {i}", 1000 + i, $"ISBN 11111{i}", 10.10m * (i +1)));
+            }
 
-        //     var bks = books.AsQueryable();
+            var bks = books.AsQueryable();
 
-        //     var s = Stopwatch.StartNew();
-        //     var results = bks.Search("Shakespeare Othello");
-        //     s.Stop();
-        //     System.Console.WriteLine(s.ElapsedMilliseconds);
-        // }
+            var s = Stopwatch.StartNew();
+            var results = bks.Search("Shakespeare Othello");
+            s.Stop();
+        }
 
         // TODO: search for int23, DateTIme, float, decimal?
     }
