@@ -36,6 +36,24 @@ namespace SearchQueryable.Tests
         }
         
         [Fact]
+        public void TestsPropertyWithPredicate()
+        {
+            using(var ctx = new SearchQueryableDbContext(_dbFixture.DbContextOptions)) {
+                var results = ctx.Books.Search("123459", b => b.ISBN);
+                Assert.Single(results);
+            }
+        }
+        
+        [Fact]
+        public void TestsPropertyWithNestedPredicate()
+        {
+            using(var ctx = new SearchQueryableDbContext(_dbFixture.DbContextOptions)) {
+                var results = ctx.Books.Search("Pasadena", b => b.Publisher.Name);
+                Assert.Equal(2, results.Count());
+            }
+        }
+        
+        [Fact]
         public void MultipartQueryIsMatched()
         {
             using(var ctx = new SearchQueryableDbContext(_dbFixture.DbContextOptions)) {

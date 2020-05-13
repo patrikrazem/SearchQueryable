@@ -35,7 +35,7 @@ namespace SearchQueryable
         /// <param name="searchQuery">The search query by which the entries should be filtered</param>
         /// <param name="fields">The fields that should be queried with the specified search string</param>
         /// <returns>A filteres collection of entries</returns>
-        public static IQueryable<T> Search<T>(this IQueryable<T> data, string searchQuery, params Expression<Func<T, object>>[] fields)
+        public static IQueryable<T> Search<T>(this IQueryable<T> data, string searchQuery, params Expression<Func<T, string>>[] fields)
         {
             // Simply return the entire collection, if no search query is specified
             if (string.IsNullOrWhiteSpace(searchQuery) || fields == null || fields.Length < 1) {

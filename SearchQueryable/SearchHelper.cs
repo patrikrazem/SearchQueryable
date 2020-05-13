@@ -38,7 +38,7 @@ namespace SearchQueryable
         ///
         /// `x => x.Name.ToLower().Contains(query) || x.Address.ToLower().Contains(query)`
         ///
-        internal static Expression<Func<TObject, bool>> ConstructSearchPredicate<TObject>(string searchQuery, params Expression<Func<TObject, object>>[] members)
+        internal static Expression<Func<TObject, bool>> ConstructSearchPredicate<TObject>(string searchQuery, params Expression<Func<TObject, string>>[] members)
         {
             // Create constant with query
             var constant = Expression.Constant(searchQuery);
@@ -55,7 +55,7 @@ namespace SearchQueryable
                     .VisitAndConvert(m.Body, nameof(ConstructSearchPredicate));
 
                 // Get query expression
-                var partialExpression = GetQueryExpression(memberExpression, constant, memberExpression.Type, CompatiblityMode.All);
+                var partialExpression = GetQueryExpression(memberExpression, constant, memberExpression.Type, CompatiblityMode.Strict);
 
                 // Handle case when no OR operation can be constructed
                 if (finalExpression == null) {

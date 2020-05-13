@@ -13,9 +13,9 @@ namespace SearchQueryable.Tests.Data
         public DbFixture()
         {
             DbContextOptions = new DbContextOptionsBuilder<SearchQueryableDbContext>()
-                .UseInMemoryDatabase("testing")
+                // .UseInMemoryDatabase("testing")
                 // .UseSqlite($"Filename=tests.db")
-                // .UseSqlServer("Server=localhost;Database=searchqueryable;Trusted_Connection=False;MultipleActiveResultSets=true;User id=dbowner;Password=Dbowner.1234")
+                .UseSqlServer("Server=localhost;Database=searchqueryable;Trusted_Connection=False;MultipleActiveResultSets=true;User id=dbowner;Password=Dbowner.1234")
                 .Options;
             DbContext = new SearchQueryableDbContext(DbContextOptions);
             DbContext.Database.EnsureDeleted();

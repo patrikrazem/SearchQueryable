@@ -47,7 +47,7 @@ namespace SearchQueryable.Tests
         [Fact]
         public void DoesNotBreakOnEmptyPredicates()
         {
-            var results = _books.Search("Romeo", new System.Linq.Expressions.Expression<Func<Book, object>>[0]);
+            var results = _books.Search("Romeo", new System.Linq.Expressions.Expression<Func<Book, string>>[0]);
             Assert.Equal(5, results.Count());
         }
 
@@ -130,7 +130,7 @@ namespace SearchQueryable.Tests
         [Fact]
         public void WorksOnIntegerFieldsWithPredicate()
         {
-            var results = _books.Search("1523", b => b.YearPublished);
+            var results = _books.Search("1523", b => b.YearPublished.ToString());
             Assert.Single(results, _books.Last());
         }
 
@@ -144,7 +144,7 @@ namespace SearchQueryable.Tests
         [Fact]
         public void WorksOnDecimalFieldsWithPredicate()
         {
-            var results = _books.Search("99.99", b => b.Price);
+            var results = _books.Search("99.99", b => b.Price.ToString());
             Assert.Single(results, _books.First());
         }
 
@@ -158,7 +158,7 @@ namespace SearchQueryable.Tests
         [Fact]
         public void WorksOnMultiplePredicateReturnTypes()
         {
-            var results = _books.Search("Othello", b => b.Title, b => b.YearPublished);
+            var results = _books.Search("Othello", b => b.Title, b => b.YearPublished.ToString());
             Assert.Single(results);
         }
 
