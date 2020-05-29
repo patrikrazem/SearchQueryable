@@ -7,10 +7,10 @@ namespace SearchQueryable
     public static class QueryableExtensions
     {
         /// <summary>
-        /// Extensions method for filtering entries by all their string fields
+        /// Filters entries by all their string fields
         /// </summary>
         /// <param name="searchQuery">The search query by which the entries should be filtered</param>
-        /// <returns>A filteres collection of entries</returns>
+        /// <returns>A filtered collection of entries</returns>
         public static IQueryable<T> Search<T>(this IQueryable<T> data, string searchQuery, CompatiblityMode mode = CompatiblityMode.Strict)
         {
             // Simply return the entire collection, if no search query is specified
@@ -30,11 +30,11 @@ namespace SearchQueryable
         }
 
         /// <summary>
-        /// Extensions method for filtering entries by specified fields
+        /// Filters entries by specified fields
         /// </summary>
         /// <param name="searchQuery">The search query by which the entries should be filtered</param>
         /// <param name="fields">The fields that should be queried with the specified search string</param>
-        /// <returns>A filteres collection of entries</returns>
+        /// <returns>A filtered collection of entries</returns>
         public static IQueryable<T> Search<T>(this IQueryable<T> data, string searchQuery, params Expression<Func<T, string>>[] fields)
         {
             // Simply return the entire collection, if no search query is specified
