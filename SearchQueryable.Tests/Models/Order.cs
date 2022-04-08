@@ -1,7 +1,6 @@
-namespace SearchQueryable.Tests
+namespace SearchQueryable.Tests;
+
+public class Order 
 {
-    public class Order 
-    {
-        public int Id { get; set; }   
-    }
+    public int Id { get; set; }   
 }
