@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <PackageId>SearchQueryable</PackageId>
-    <Version>0.6.0</Version>
+    <Version>0.7.0</Version>
     <Authors>patrikrazem</Authors>
     <Company>Patrik Razem</Company>
     <Nullable>enable</Nullable>

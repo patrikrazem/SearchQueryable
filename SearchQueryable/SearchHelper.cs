@@ -4,6 +4,8 @@ using System.Reflection;
 
 namespace SearchQueryable;
 
+internal record ExpressionScopedVariable(string Value);
+
 internal static class SearchHelper
 {
     /// <summary>
@@ -37,7 +39,9 @@ internal static class SearchHelper
     internal static Expression<Func<TObject, bool>> ConstructSearchPredicate<TObject>(string searchQuery, SearchFlags flags, params Expression<Func<TObject, string?>>[] members)
     {
         // Create constant with query
-        var constant = Expression.Constant(searchQuery);
+        var constant = Expression.Constant(new ExpressionScopedVariable(searchQuery));
+        var scopedMember = typeof(ExpressionScopedVariable).GetMember("Value")[0];
+        var scopedMemberAccessor = Expression.MakeMemberAccess(constant, scopedMember!);
 
         // Input parameter (e.g. "c => ")
         var parameter = Expression.Parameter(typeof(TObject), "c");
@@ -60,7 +64,7 @@ internal static class SearchHelper
         Expression? finalExpression = null;
         foreach (var memberExpression in memberExpressions) {
             // Get query expression
-            var partialExpression = GetQueryExpression(memberExpression, constant, memberExpression.Type, flags);
+            var partialExpression = GetQueryExpression(memberExpression, scopedMemberAccessor, memberExpression.Type, flags);
 
             // Handle case when no OR operation can be constructed
             if (finalExpression == null) {
