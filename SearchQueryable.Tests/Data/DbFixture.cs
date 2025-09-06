@@ -9,10 +9,12 @@ public class DbFixture : IDisposable
 
     public DbFixture()
     {
+        var sqlServerConnectionString = Environment.GetEnvironmentVariable("SQLSERVER_CONNECTION_STRING");
+
         DbContextOptions = new DbContextOptionsBuilder<SearchQueryableDbContext>()
             // .UseInMemoryDatabase("testing")
             // .UseSqlite($"Filename=tests.db")
-            .UseSqlServer("Server=localhost;Database=searchqueryable;Trusted_Connection=False;MultipleActiveResultSets=true;User id=sa;Password=Dbowner.1234")
+            .UseSqlServer(sqlServerConnectionString)
             // .EnableSensitiveDataLogging()
             // .LogTo(Console.WriteLine)
             .Options;
