@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using SearchQueryable.Tests.Models;
 
 namespace SearchQueryable.Tests.Data;
 

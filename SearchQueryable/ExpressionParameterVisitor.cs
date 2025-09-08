@@ -17,13 +17,8 @@ internal class ExpressionParameterVisitor : ExpressionVisitor
     /// <param name="to">The parameters with which to replace the original ones</param>
     internal ExpressionParameterVisitor(ParameterExpression from, ParameterExpression to)
     {
-        if (from == null) {
-            throw new ArgumentNullException("From is required");
-        }
-
-        if (to == null) {
-            throw new ArgumentNullException("to");
-        }
+        ArgumentNullException.ThrowIfNull(from);
+        ArgumentNullException.ThrowIfNull(to);
 
         this.from = from;
         this.to = to;
@@ -31,10 +26,6 @@ internal class ExpressionParameterVisitor : ExpressionVisitor
 
     protected override Expression VisitParameter(ParameterExpression node)
     {
-        if (node == from) {
-            return to;
-        } else {
-            return node;
-        }
+        return node == from ? to : node;
     }
 }

@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace SearchQueryable.Tests;
+namespace SearchQueryable.Tests.Models;
 
 public class Book
 {

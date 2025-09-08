@@ -11,17 +11,17 @@ internal static class SearchHelper
     /// <summary>
     /// A constant definition of the ToUpperInvariant method to use in expressions
     /// </summary>
-    private static readonly MethodInfo UpperInvariantMethod = typeof(string).GetMethod("ToUpperInvariant", new Type[0])!;
+    private static readonly MethodInfo UpperInvariantMethod = typeof(string).GetMethod("ToUpperInvariant", [])!;
 
     /// <summary>
     /// A constant definition of the ToUpperInvariant method to use in expressions
     /// </summary>
-    private static readonly MethodInfo UpperMethod = typeof(string).GetMethod("ToUpper", new Type[0])!;
+    private static readonly MethodInfo UpperMethod = typeof(string).GetMethod("ToUpper", [])!;
 
     /// <summary>
     /// A constant definition of the Contants method to use in expressions
     /// </summary>
-    private static readonly MethodInfo ContainsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) })!;
+    private static readonly MethodInfo ContainsMethod = typeof(string).GetMethod("Contains", [typeof(string)])!;
 
     /// <summary>
     /// Constructs an expression that is used to filter entries and execute a search for the specified query
@@ -47,7 +47,7 @@ internal static class SearchHelper
         var parameter = Expression.Parameter(typeof(TObject), "c");
 
         IEnumerable<Expression> memberExpressions;
-        if (!members.Any()) {
+        if (members.Length == 0) {
             // Get all object properties
             var type = typeof(TObject);
 
@@ -171,15 +171,11 @@ internal static class SearchHelper
 
     private static Type GetUnderlyingType(this MemberInfo member)
     {
-        switch (member.MemberType) {
-            case MemberTypes.Field:
-                return ((FieldInfo)member).FieldType;
-            case MemberTypes.Method:
-                return ((MethodInfo)member).ReturnType;
-            case MemberTypes.Property:
-                return ((PropertyInfo)member).PropertyType;
-            default:
-                throw new ArgumentException("Input MemberInfo must be of type FieldInfo, MethodInfo, or PropertyInfo");
-        }
+        return member.MemberType switch {
+            MemberTypes.Field => ((FieldInfo)member).FieldType,
+            MemberTypes.Method => ((MethodInfo)member).ReturnType,
+            MemberTypes.Property => ((PropertyInfo)member).PropertyType,
+            _ => throw new ArgumentException("Input MemberInfo must be of type FieldInfo, MethodInfo, or PropertyInfo"),
+        };
     }
 }

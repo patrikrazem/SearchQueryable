@@ -1,4 +1,4 @@
-namespace SearchQueryable.Tests;
+namespace SearchQueryable.Tests.Models;
 
 public class Order 
 {

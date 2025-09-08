@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using SearchQueryable.Tests.Models;
 using Xunit;
 
 namespace SearchQueryable.Tests;
@@ -11,13 +12,16 @@ public class AllModeInMemoryTests
     {
         _books = new List<Book>()
         {
-            new Book("Romeo && Juliet", "William Shakespeare", 1597, "ISBN 123456", 99.99m, new Publisher("Pasadena", "First street")),
-            new Book("Othello", "William Shakespeare", 1597, "ISBN 123457", 123.45m, new Publisher("Penguin", "Classic street")),
-            new Book("The Two Noble Kinsmen", "William Shakespeare", 1635, "ISBN 123458", 111.11m, new Publisher("Pasadena", "First street")),
-            new Book("A New Kind of Science", "Stephen Wolfram", 2002, "ISBN 123459", 222.22m),
-            new Book("The Will To Live", "Invented Person", 1523, "ISBN 1234510", 0.00m),
+            new("Romeo && Juliet", "William Shakespeare", 1597, "ISBN 123456", 99.99m, new("Pasadena", "First street")),
+            new("Othello", "William Shakespeare", 1597, "ISBN 123457", 123.45m, new("Penguin", "Classic street")),
+            new("The Two Noble Kinsmen", "William Shakespeare", 1635, "ISBN 123458", 111.11m, new("Pasadena", "First street")),
+            new("A New Kind of Science", "Stephen Wolfram", 2002, "ISBN 123459", 222.22m),
+            new("The Will To Live", "Invented Person", 1523, "ISBN 1234510", 0.00m),
         }.AsQueryable();
 
+        // Set current thread locale
+        Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+        Thread.CurrentThread.CurrentUICulture = System.Globalization.CultureInfo.InvariantCulture;
     }
     
     [Fact]
@@ -121,6 +125,7 @@ public class AllModeInMemoryTests
     public void WorksOnDecimalFieldsWithPredicate()
     {
         var results = _books.Search("99.99", b => b.Price.ToString());
+        Console.WriteLine(_books.First().Price);
         Assert.Single(results, _books.First());
     }
 
