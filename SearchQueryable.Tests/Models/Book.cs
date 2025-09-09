@@ -28,7 +28,7 @@ public class Book
     [NotMapped]
     public IEnumerable<string> Chapters { get; set; }
 
-    public IReadOnlyCollection<Order> Orders;
+    public IEnumerable<Order> Orders { get; set; }
 
     public DateTimeOffset Date { get; set; }
 
@@ -37,7 +37,7 @@ public class Book
     #nullable disable
     private Book() { }
 
-    public Book(string title, string author, int year, string isbn, decimal price, Publisher publisher = null)
+    public Book(string title, string author, int year, string isbn, decimal price, Publisher publisher = null, IEnumerable<Order> orders = null)
     {
         Title = title;
         SubtitleTitle = title;
@@ -46,6 +46,7 @@ public class Book
         ISBN = isbn;
         Price = price;
         Publisher = publisher;
+        Orders = orders?.ToList() ?? [];
     }
     #nullable restore
 

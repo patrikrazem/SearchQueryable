@@ -3,6 +3,7 @@ using Xunit;
 
 namespace SearchQueryable.Tests;
 
+[Collection("Database collection")]
 public class StrictModeEFTests
 {
     private readonly DbFixture _dbFixture;
@@ -28,7 +29,7 @@ public class StrictModeEFTests
         var results = ctx.Books.Search("123459");
         Assert.Single(results);
     }
-    
+
     [Fact]
     public void TestsPropertyWithPredicate()
     {
@@ -36,7 +37,7 @@ public class StrictModeEFTests
         var results = ctx.Books.Search("123459", b => b.ISBN);
         Assert.Single(results);
     }
-    
+
     [Fact]
     public void TestsPropertyWithNestedPredicate()
     {
@@ -52,7 +53,7 @@ public class StrictModeEFTests
         var results = ctx.Books.Search("shakespeare 123458");
         Assert.Single(results);
     }
-    
+
     [Fact]
     public void FiltersCompletely()
     {
@@ -68,7 +69,7 @@ public class StrictModeEFTests
         var results = ctx.Books.Search("Dance");
         Assert.Empty(results);
     }
-    
+
     [Fact]
     public void FieldsAreIgnored()
     {
@@ -76,7 +77,7 @@ public class StrictModeEFTests
         var results = ctx.Books.Search("Othello");
         Assert.Empty(results);
     }
-    
+
     [Fact]
     public void IntegerPropertyIsIgnored()
     {
@@ -84,7 +85,7 @@ public class StrictModeEFTests
         var results = ctx.Books.Search("1597");
         Assert.Empty(results);
     }
-    
+
     [Fact]
     public void DecimalPropertyIsIgnored()
     {

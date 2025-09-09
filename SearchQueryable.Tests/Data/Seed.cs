@@ -9,11 +9,14 @@ public static class Seed
         if (!ctx.Books.Any()) {
             var books = new List<Book>()
             {
-                new("Romeo && Juliet", "William Shakespeare", 1597, "ISBN 123456", 99.99m, new("Pasadena", "First street")),
-                new("Othello", "William Shakespeare", 1597, "ISBN 123457", 123.45m, new("Penguin", "Classic street")),
-                new("The Two Noble Kinsmen", "William Shakespeare", 1635, "ISBN 123458", 111.11m, new("Pasadena", "First street")),
-                new("A New Kind of Science", "Stephen Wolfram", 2002, "ISBN 123459", 222.22m),
-                new("The Will To Live", "Invented Person", 1523, "ISBN 1234510", 0.00m),
+                new("Romeo && Juliet", "William Shakespeare", 1597, "ISBN 123456", 99.99m, new("Pasadena", "First street"), [
+                    new("First order"),
+                    new("Second order"),
+                ]),
+                new("Othello", "William Shakespeare", 1597, "ISBN 123457", 123.45m, new("Penguin", "Classic street"), []),
+                new("The Two Noble Kinsmen", "William Shakespeare", 1635, "ISBN 123458", 111.11m, new("Pasadena", "First street"), []),
+                new("A New Kind of Science", "Stephen Wolfram", 2002, "ISBN 123459", 222.22m, null, []),
+                new("The Will To Live", "Invented Person", 1523, "ISBN 1234510", 0.00m, null, []),
             };
 
             for (int i = 0; i < 100; i++) {
