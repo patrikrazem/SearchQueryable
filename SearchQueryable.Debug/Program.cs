@@ -17,17 +17,17 @@ class Program
             ]),
         }.AsQueryable();
 
-
-
-        // Manual
-        // var query = "First order";
-        // var result = books
-        //     .Where(b => b.Title.Contains(query) ||
-        //                 b.Orders.Any(o => o.Description.Contains(query)) ||
-        //                 b.Orders.Any(o => o.Id.ToString().Contains(query))).ToList();
+        var query = "order";
 
         // Automatic
-        var result = books.Search("FIRST order").ToList();
-        System.Console.WriteLine(result.Count);
+        var result = books.SearchMembers(
+            query,
+            SearchFlags.LaxMode,
+            "Title",
+            "Orders.Description")
+            .ToList();
+
+        System.Console.WriteLine(result.FirstOrDefault()?.Title);
+        System.Console.WriteLine(result.Count());
     }
 }

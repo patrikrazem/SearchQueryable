@@ -29,4 +29,20 @@ public class CollectionsEFTests
         var results = ctx.Books.Include(x => x.Orders).Search("FIRST ORDER", SearchFlags.IgnoreCase);
         Assert.Single(results);
     }
+
+    [Fact]
+    public void CanSearchCollectionSpecificMembers()
+    {
+        using var ctx = new SearchQueryableDbContext(_dbFixture.DbContextOptions);
+        var results = ctx.Books.Include(x => x.Orders).SearchMembers("First order", "Orders.Description");
+        Assert.Single(results);
+    }
+
+    [Fact]
+    public void CanSearchCollectionSpecificMembersCaseInsensitive()
+    {
+        using var ctx = new SearchQueryableDbContext(_dbFixture.DbContextOptions);
+        var results = ctx.Books.Include(x => x.Orders).SearchMembers("FIRST ORDER", SearchFlags.IgnoreCase, "Orders.Description");
+        Assert.Single(results);
+    }
 }

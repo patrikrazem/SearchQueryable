@@ -26,23 +26,22 @@ internal static class SearchHelper
     /// <summary>
     /// A constant definition of the Any method to use in expressions for collections
     /// </summary>
-    private static readonly MethodInfo AnyMethod = typeof(Enumerable).GetMethods()
-        .First(m => m.Name == "Any" && m.GetParameters().Length == 2);
+    private static readonly MethodInfo AnyMethod = typeof(Enumerable).GetMethods().First(m => m.Name == "Any" && m.GetParameters().Length == 2);
 
     /// <summary>
     /// Constructs an expression that is used to filter entries and execute a search for the specified query
     /// on all string type fields of an entity
     /// </summary>
     /// <param name="searchQuery">The query to be searched for in all string fields</param>
+    /// <param name="flags">The search flags to apply</param>
+    /// <param name="members">The names of members that should be queried with the specified search string (e.g. "Title", "SomeCollection.Property", etc.)</param>
     /// <returns>An expression that can be used in queries to the DB context</returns>
     ///
     /// Example:
-    /// For an entity with string properties `Name` and `Address`, the resulting expression
+    /// For an entity with string properties `Name` and `Orders.OrderNumber`, the resulting expression
     /// is something like this:
-    ///
-    /// `x => x.Name.ToLower().Contains(query) || x.Address.ToLower().Contains(query)`
-    ///
-    internal static Expression<Func<TObject, bool>> ConstructSearchPredicate<TObject>(string searchQuery, SearchFlags flags, params Expression<Func<TObject, string?>>[] members)
+    /// `x => x.Name.ToLower().Contains(query) || x.Orders.Any(o => o.OrderNumber.ToLower().Contains(query))`
+    internal static Expression<Func<TObject, bool>> ConstructSearchPredicate<TObject>(string searchQuery, SearchFlags flags, Expression<Func<TObject, string?>>[] memberAccessors, string[] membersNames)
     {
         // Create constant with query
         var constant = Expression.Constant(new ExpressionScopedVariable(searchQuery));
@@ -53,16 +52,25 @@ internal static class SearchHelper
         var parameter = Expression.Parameter(typeof(TObject), "c");
 
         IEnumerable<Expression> memberExpressions;
-        if (members.Length == 0) {
+        if (memberAccessors.Length == 0 && membersNames.Length == 0) {
             // Get all object properties
             var type = typeof(TObject);
 
             // Get appropriate members to test
             memberExpressions = GetAvailableMembers(type, parameter, flags);
         } else {
+            // Based expressions on the provided memberAccessors
+            IEnumerable<LambdaExpression> accessors = memberAccessors;
+
+            // If no accessors are provided, use the member names to construct them
+            if (!accessors.Any()) {
+                // Convert string selectors to member expressions
+                accessors = membersNames.Select(m => ConstructExpressionFromStringSelector<TObject>(parameter, m, flags)).ToList();
+            }
+
             // Visit the provided expression and replace the input parameter with the one defined above ("c")
             // e.g. (from "x.Something" we get "c.Something")
-            memberExpressions = members.Select(m => new ExpressionParameterVisitor(m.Parameters.First(), parameter)
+            memberExpressions = accessors.Select(m => new ExpressionParameterVisitor(m.Parameters.First(), parameter)
                 .VisitAndConvert(m.Body, nameof(ConstructSearchPredicate)));
         }
 
@@ -93,6 +101,47 @@ internal static class SearchHelper
 
         // Return the constructed expression
         return Expression.Lambda<Func<TObject, bool>>(finalExpression, parameter);
+    }
+
+    /// <summary>
+    /// Constructs an expression from a string selector for a specific object type.
+    /// </summary>
+    /// <param name="parameter">The parameter expression representing the object (e.g. "c.<property>"</param>
+    /// <param name="selector">The string selector to parse (e.g. "Title", "Orders.OrderNumber", etc.).</param>
+    /// <param name="flags">The search flags to apply.</param>
+    /// <typeparam name="TObject">The type of the object being queried.</typeparam>
+    /// <returns>The constructed expression (e.g. "c => c.Title" or "c => c.Orders.Any(o => o.OrderNumber == <value>)")</returns>
+    private static LambdaExpression ConstructExpressionFromStringSelector<TObject>(ParameterExpression parameter, string selector, SearchFlags flags)
+    {
+        // Define binding flags to get public instance members
+        var bindingFlags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase;
+
+        Expression currentExpression = parameter;
+
+        // parts are the segments of the selector split by '.'
+        var parts = selector.Split('.');
+
+        // If there is only one part, it's a direct property of the parameter
+        if (parts.Length == 1) {
+            // Get the member
+            var member = typeof(TObject).GetMember(parts[0], bindingFlags).First();
+
+            var memberExpression = CreateMemberExpression(parameter, member!);
+
+            return Expression.Lambda(memberExpression, parameter);
+        }
+
+        // If there's exactly two parts, we need to handle a collection property
+        if (parts.Length == 2) {
+            // Construct collection expression
+            var collectionExpression = Expression.Property(currentExpression, parts[0]);
+
+            var collectionSearchExpression = GetCollectionSearchExpressions(collectionExpression, collectionExpression.Type, flags);
+            return Expression.Lambda(collectionSearchExpression.First(), parameter);
+        }
+
+        // If there's more than two parts, this usage is not supported
+        throw new NotSupportedException("Selectors with more than two parts are not supported.");
     }
 
     /// <summary>
@@ -383,6 +432,11 @@ internal static class SearchHelper
                directMethodCall.Method.GetGenericMethodDefinition() == AnyMethod;
     }
 
+    /// <summary>
+    /// Checks if a type is a collection (implements IEnumerable)
+    /// </summary>
+    /// <param name="type">The type to be checked</param>
+    /// <returns>Whether the type represents collection (implement IEnumerable)</returns>
     private static bool IsCollection(this Type type)
     {
         // Strings are formally collections, so we should handle this separately
@@ -392,6 +446,11 @@ internal static class SearchHelper
         return typeof(IEnumerable).IsAssignableFrom(type);
     }
 
+    /// <summary>
+    /// Gets the underlying type of a member (field, property, or method return type)
+    /// </summary>
+    /// <param name="member">The member for which to retrieve the underlying type</param>
+    /// <returns>The underlying type of the member</returns>
     private static Type GetUnderlyingType(this MemberInfo member)
     {
         return member.MemberType switch {

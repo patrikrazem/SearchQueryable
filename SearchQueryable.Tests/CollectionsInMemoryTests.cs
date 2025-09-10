@@ -59,4 +59,31 @@ public class CollectionsInMemoryTests
         var results = _books.Search("Inexistent order");
         Assert.Empty(results);
     }
+
+    [Fact]
+    public void CanSearchCollectionSpecificMember()
+    {
+        var results = _books.SearchMembers("First order", "Orders.Description");
+        Assert.Single(results);
+        Assert.Equal(_books.First().Title, results.Single().Title);
+
+        results = _books.SearchMembers("Third order", "Orders.Description");
+        Assert.Single(results);
+        Assert.Equal(_books.Last().Title, results.Single().Title);
+    }
+
+    [Fact]
+    public void NonMatchingCaseSpecificMemberReturnsEmptySet()
+    {
+        var results = _books.SearchMembers("FIRST ORDER", "Orders.Description");
+        Assert.Empty(results);
+    }
+
+    [Fact]
+    public void CanSearchCollectionSpecificMemberCaseInsensitive()
+    {
+        var results = _books.SearchMembers("FIRST ORDER", SearchFlags.IgnoreCase, "Orders.Description");
+        Assert.Single(results);
+        Assert.Equal(_books.First().Title, results.Single().Title);
+    }
 }
