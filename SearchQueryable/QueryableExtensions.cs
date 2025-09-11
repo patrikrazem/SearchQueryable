@@ -72,8 +72,12 @@ public static class QueryableExtensions
         return matches;
     }
 
-    public static string ThenSearch<T>(this IEnumerable<T> data, Expression<Func<T, string?>> field)
+    public static IQueryable<T> Search<T>(this IQueryable<T> data, int a, params Expression<Func<T, string?>>[] fieldss)
     {
-        throw new NotImplementedException();
+        var expressions = fieldss;
+        return data;
     }
+
+    public static U ThenSearch<T, U>(this IEnumerable<T> data, Expression<Func<T, U?>> field)
+        => throw new InvalidOperationException("This method is only a marker for the Search method and should not be called directly.");
 }
